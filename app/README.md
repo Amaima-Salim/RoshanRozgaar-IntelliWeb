@@ -60,12 +60,33 @@ port 3200 (set `E2E_PORT` to change it).
 
 ## AI services and tools used
 
-_No AI service is called by the app yet._ `AI_MODE` defaults to `off`. _TODO (Phase 2+): table of service/model, used
-for, free tier, fallback, data sent, limitations._
+`AI_MODE=live|fixtures|off` (default `off`). Every AI call has a timeout (`AI_TIMEOUT_MS`), a Zod schema and a
+non-AI fallback; AI output is a draft the person confirms and never decides price, booking, payment or trust.
+
+| Task                       | Service                                                                                             | Used for                                                | Free tier | Fallback                                          | Data sent                                                                                | Status                                                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Speech to text (AI-01)     | Groq Whisper (`whisper-large-v3-turbo`)                                                             | A worker's spoken onboarding answer                     | Yes       | Browser Web Speech (`ur-PK`, Chromium) → tap path | The audio clip (≤ 20 s), nothing else                                                    | **Not yet run against the live API** (no key at this point); code paths covered by tests with injected providers |
+| Profile extraction (AI-02) | Rule-based Urdu/Roman Urdu parser first; Google Gemini (JSON mode) only when the rules find nothing | Turns the transcript of ONE step into that step's field | Yes       | Empty draft → the tap tiles                       | The transcript text and the allowed area names; never names, phones, emails or addresses | **Not yet run against the live API**; the rule parser is fully unit-tested                                       |
+| Spoken prompts             | Browser `speechSynthesis` for now; pre-generated audio files once the team picks a tool             | "Listen" buttons in Urdu and English on each screen     | n/a       | Both texts shown in an expandable panel           | The instruction text (in the browser)                                                    | Audio-generation tool **not chosen yet**                                                                         |
+| AI coding assistants       | Claude (Anthropic), via Claude Code                                                                 | Wrote and reviewed code in this repo                    | n/a       | n/a                                               | Source code                                                                              | See "AI coding assistants" below                                                                                 |
+
+`AI_MODE=fixtures` replays recorded transcripts and shows a persistent **"Simulated AI"** badge; it is used by the
+test server and is the honest way to demo voice without keys. Gemini's free tier may use submitted data to improve
+Google's products, so the demo uses fictional data and team voices only.
+
+**Microphone consent** (shown once per session before the first recording): "If you speak, your voice is recorded for
+a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are
+never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you
+always confirm it."
 
 ## "What stops working if AI is removed?"
 
-_TODO (from docs/04 §9 once the AI features exist)._
+| Without AI…                 | Effect                                                                                                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Voice onboarding (AI-01/02) | A worker answers every step by tapping tiles instead of speaking. Onboarding still completes (tested with `AI_MODE=off`), but it is slower and less natural for a low-literacy worker. |
+| Spoken guide                | Instructions stay available as text in both languages and, where the browser has a voice, as speech.                                                                                   |
+
+_More rows are added as later phases add AI features (request drafting, voice notes, reviews)._
 
 ## Third-party services (non-AI)
 
@@ -109,7 +130,11 @@ of the first commit._ Open-source libraries are credited below.
 
 ## Known limitations
 
-- Phase 0 only: none of the five outcomes is implemented yet.
+- Voice and the Gemini/Groq calls have only run with recorded fixtures and injected test providers; the live providers are
+  untested until API keys are added. Urdu speech-recognition accuracy is not measured yet.
+- Spoken guidance falls back to the browser voice; many desktop browsers have no Urdu voice, so the Urdu "Listen" button
+  can be hidden there (the Urdu text is always shown). Pre-generated audio files will fix this.
+- Phases 4–9 are not built yet.
 - `btree_gist` (needed for the no-double-booking constraint) is verified on Docker Postgres; not yet verified on Neon.
 - Area coordinates are approximate.
 - Email codes are sent from a personal Gmail account, which allows about **500 emails per rolling 24 hours**. When the

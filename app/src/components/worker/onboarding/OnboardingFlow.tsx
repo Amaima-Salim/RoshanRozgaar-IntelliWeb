@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { SpeakButton } from "@/components/ui/SpeakButton";
+import { GuideButtons } from "@/components/guide/GuideButtons";
 import {
   OPTIONAL_STEPS,
   STEP_IDS,
@@ -268,7 +268,7 @@ export function OnboardingFlow({
             </h1>
             {hint ? <p className="text-text-muted">{hint}</p> : null}
           </div>
-          <SpeakButton text={question} />
+          <GuideButtons id={step ? `onboarding.${step}` : "onboarding.readback"} />
         </div>
 
         {voiceStep ? (

@@ -21,13 +21,20 @@ function hasVoice(lang: "ur" | "en") {
 export function SpeakButton({
   src,
   text,
+  lang: forcedLang,
+  label,
   className,
 }: {
   src?: string | null;
   text?: string | null;
+  /** Language of `text`/`src` when it differs from the page language (the "In English" guide). */
+  lang?: "ur" | "en";
+  /** Overrides the visible "Listen" label. */
+  label?: string;
   className?: string;
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang: pageLang } = useI18n();
+  const lang = forcedLang ?? pageLang;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [fileBroken, setFileBroken] = useState(false);
@@ -106,7 +113,7 @@ export function SpeakButton({
       ) : (
         <Volume2 aria-hidden className="size-5 rtl:-scale-x-100" />
       )}
-      {playing ? t("speak.stop") : t("speak.play")}
+      {playing ? t("speak.stop") : (label ?? t("speak.play"))}
     </button>
   );
 }

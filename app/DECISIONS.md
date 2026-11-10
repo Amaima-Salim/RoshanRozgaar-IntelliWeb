@@ -18,6 +18,9 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
 | D-24 | Sign-in per role: worker = Google or demo phone (email code under "More options"); customer = Google or email code (demo phone under "More options"); demo accounts always | Accepted (Phase 1 start, 2026-11-10) | Team said "start phase 1"; treated as confirmation of the proposal                                                       |
 | D-25 | OTP email via Gmail SMTP (Nodemailer + App Password, dedicated project Gmail, ~500/day)                                                                                    | Accepted (Phase 1 start, 2026-11-10) | Same                                                                                                                     |
 | D-28 | Google client + Gmail App Password set up before the hackathon start                                                                                                       | **Unconfirmed with organizers**      | Configuration only, no project code; the values were **not yet in `.env.local`** at Phase 1 start                        |
+| D-07 | "Nearby" = 10 km radius constant                                                                                                                                           | Accepted (Phase 3 start, 2026-11-10) | Team said "start phase 3"; treated as confirming the proposals D-07, D-08, D-09                                          |
+| D-08 | "Available" = toggle ON (for ASAP) + inside weekly hours + no overlapping confirmed job; default duration 2 h                                                              | Accepted (Phase 3 start)             | Same                                                                                                                     |
+| D-09 | One agreed fixed PKR amount per job via offer/counter; profile shows an indicative rate                                                                                    | Accepted (Phase 3 start)             | Same                                                                                                                     |
 | D-29 | Web-first responsive; PWA is a Phase 8 enhancement                                                                                                                         | Accepted                             | Breakpoints 360 / 768 / 1280                                                                                             |
 
 ## Implementation decisions
@@ -152,6 +155,27 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
   deployments (D-42).
 - **Demo phone implementation:** unchanged from D-31 (custom Better Auth plugin endpoints).
 
+### D-48 — Phase 2 choices
+
+- **Customer default area** is kept in a non-sensitive `rr_area` cookie (set by `POST /api/customer/onboarding`), not a new
+  column: no migration, and it only prefills the request form in Phase 3. The customer's name and language go to `users`.
+- **Voice extraction** runs rules first, the LLM second (docs/04 §4). The extract route takes only the step id and the
+  transcript; it does not take "known answers" (not needed, and less data leaves the app). Allowed areas come from the DB.
+- **Browser speech recogniser** runs beside the recorder as the fallback when server speech-to-text fails; it is used only
+  if the server returns nothing.
+- **`AI_MODE=fixtures`** replays a recorded transcript per step regardless of what was actually said, and says so with a
+  persistent "Simulated AI" badge. It exists for the test server and keyless demos.
+- **Rate limits** on `/api/ai/*`: 30 calls/min and 200/day per user, stored in the DB. The mode check comes first (503
+  `AI_UNAVAILABLE` when off); the limiter is skipped only on the local E2E server (`RR_E2E=1`, refused on deployments).
+  Found because repeated E2E voice runs on one shared demo account hit the old 12/min cap.
+- **Spoken guide** (`src/lib/guide`): one registry of ids → bilingual texts. Each "Listen" button plays a file from
+  `/public/audio/{ur,en}/<id>.mp3` when `audio-manifest.ts` lists it, else the browser voice, else hides; the full text in
+  both languages is always available in an expandable panel. **Audio-generation tool: undecided (STOP AND ASK).**
+- **Worker onboarding** keeps answers in memory until the read-back "Yes"; `PUT /api/worker/profile` saves everything in one
+  transaction. A finished worker can reopen it with `/w/onboarding?edit=1`. Saving does not switch availability on.
+- **Ranking prior:** the Bayesian average uses a prior mean of 3.5 stars with C = 3 (`ranking-config.ts`), so a worker
+  with no reviews scores as average, not as zero. Version `RANKING_VERSION` in the same file.
+
 ## Derived UI states
 
 States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as they are built.
@@ -159,5 +183,7 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
 - Login: wrong-code / expired / locked-out / resend-throttle error text (derived; `docs/05` §3 rules).
 - Login: loading state on "Get code" / "Sign in" (Button `loading` keeps its width).
 - Login: email entry, 6-box code entry with expiry and resend timer, "email could not be sent" card, Google failure line.
+- Worker onboarding: the six steps, read-back, voice box states (listening / processing / heard / not understood), consent dialog, dashboard empty states (derived until compared with Figma 04–06).
+- Customer onboarding: location denied / outside the service area notes (derived).
 - Landing: role chooser for a signed-in user with no role yet (saving / error text).
 - All Phase 0 screens are derived until compared against Figma (D-40).

@@ -327,5 +327,26 @@
     "error": "Could not save. Try again.",
     "nameRequired": "Please type your name.",
     "areaRequired": "Please tap your area."
+  },
+  "guide": {
+    "title": "Hear instructions",
+    "listen": "Listen",
+    "listenOther": "In English",
+    "listenOtherShort": "English",
+    "login": "Choose how to sign in. Press the Google button, or use your phone number and the big number keys. This is a demo login, so no message is sent.",
+    "roleChooser": "Press the picture that describes you. Press Worker if you do the work. Press Customer if you need work done. You can choose only once.",
+    "onboarding": {
+      "trade": "Press the picture of the work you do. You can also press the microphone and say it, for example: I am an electrician.",
+      "years": "Press the plus button for each year you have worked. Press minus to go down. You can also say it, for example: eight years.",
+      "areas": "Press every area where you are happy to work. You can also say the names, for example: F-7 and G-9.",
+      "rate": "Press the price you usually charge, then press how you charge: per visit, per hour or per job. You can also say it, for example: fifteen hundred per visit.",
+      "schedule": "Press the days you are free, then press the times of day. You can also say it, for example: Monday to Friday, morning and afternoon.",
+      "photo": "You can add your photo so customers know who is coming. This is optional. Press Skip if you do not want to.",
+      "readback": "Please check your profile. If a line is wrong, press it to change it. If everything is right, press the green save button."
+    },
+    "customerOnboarding": "Type your name, then press your area. You can press Use my location to find it. Then choose your language.",
+    "requestNew": "Tell us what you need. Press the picture of the work, or press the microphone and describe the problem. Then choose when you need the worker.",
+    "results": "These are workers near you who are free at your time. Each card says why it is shown. Press a worker to see more.",
+    "workerProfile": "This is the worker's profile. It shows their work, their price and what other customers said."
   }
 }

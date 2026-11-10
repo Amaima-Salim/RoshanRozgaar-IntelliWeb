@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { authClient } from "@/lib/auth/client";
+import { GuideButtons } from "@/components/guide/GuideButtons";
 import { EmailOtpPanel } from "./EmailOtpPanel";
 import { Keypad } from "./Keypad";
 
@@ -240,6 +241,7 @@ export function LoginPanel({
           <h1 id="login-title" className="text-2xl font-bold">
             {t("login.title")}
           </h1>
+          <GuideButtons id="login" />
           <nav
             aria-label={t("login.title")}
             className="grid grid-cols-2 gap-2 rounded-pill bg-canvas p-1"

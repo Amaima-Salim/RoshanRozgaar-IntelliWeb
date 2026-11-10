@@ -4,6 +4,7 @@ import { Hammer, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { GuideButtons } from "@/components/guide/GuideButtons";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/components/ui/cn";
 
@@ -50,6 +51,7 @@ export function RoleChooser({ mode }: { mode: "link" | "assign" }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <GuideButtons id="roleChooser" className="justify-center" />
       <ul className="grid gap-4 md:grid-cols-2">
         {ROLES.map(({ role, Icon, title, hint }) => {
           const { label, caption } = bi(title);
