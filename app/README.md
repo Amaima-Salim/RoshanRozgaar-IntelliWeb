@@ -110,6 +110,8 @@ _TODO: JazzCash sandbox and Easypaisa (Phase 7), Neon, Vercel._
 
 This project is being built with **Claude Code (Anthropic, Claude Opus 5.5)** as an AI coding assistant.
 
+**OpenAI Codex** also assisted with the landing page PWA install button and browser installation guidance.
+
 - **Claude:** scaffolding, the database schema and constraints, auth wiring, UI components, tests and documentation,
   working phase by phase from the team's written plan.
 - **The team:** product decisions and the implementation plan, the Figma designs, review of every change, Urdu copy,
