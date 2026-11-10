@@ -25,6 +25,6 @@ export default defineConfig({
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    env: { APP_URL: BASE_URL, AUTH_RATE_LIMIT: "off", RR_E2E: "1" },
+    env: { APP_URL: BASE_URL, AUTH_RATE_LIMIT: "off", RR_E2E: "1", AUTH_MODE: "full" },
   },
 });

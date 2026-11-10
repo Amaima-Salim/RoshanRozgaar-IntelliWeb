@@ -120,13 +120,15 @@ test.describe("demo phone login and role routing", () => {
   test("a new phone number chooses a role once, then lands in that area", async ({ page }) => {
     const phone = `0399${Date.now().toString().slice(-7)}`;
     await open(page, "/login?role=customer");
+    // Customers default to the email code; the demo phone login is under "More options".
+    await page.getByTestId("switch-method").click();
     await page.getByTestId("phone-input").fill(phone);
     await page.getByTestId("send-code").click();
     await page.getByTestId("code-input").fill("123456");
     await page.getByTestId("verify-code").click();
     await expect(page).toHaveURL(/\/$/);
     await page.getByTestId("role-customer").click();
-    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    await expect(page).toHaveURL(/\/c\/onboarding$/);
     // The role is now fixed: the chooser no longer appears.
     await open(page, "/");
     await expect(page).toHaveURL(/\/c\/request\/new$/);

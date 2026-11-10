@@ -42,9 +42,21 @@ describe("loadConfig", () => {
   });
 
   it("degrades gracefully when Google/Gmail values are missing", () => {
-    const c = loadConfig({ AUTH_MODE: "full" });
+    const c = loadConfig({ AUTH_MODE: "full", NODE_ENV: "test" });
     expect(c.auth.googleEnabled).toBe(false);
     expect(c.auth.emailOtpEnabled).toBe(false);
+  });
+
+  it("offers email codes in development without Gmail values (console fallback), not in production", () => {
+    expect(loadConfig({ AUTH_MODE: "full", NODE_ENV: "development" }).auth.emailOtpEnabled).toBe(
+      true,
+    );
+    const prod = loadConfig({
+      AUTH_MODE: "full",
+      NODE_ENV: "production",
+      SESSION_SECRET: "x".repeat(32),
+    });
+    expect(prod.auth.emailOtpEnabled).toBe(false);
   });
 
   it("keeps Google/email off in mock mode even when values exist", () => {
