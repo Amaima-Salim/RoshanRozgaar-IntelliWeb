@@ -4,6 +4,7 @@ import { LocateFixed } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { GuideButtons } from "@/components/guide/GuideButtons";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Tile } from "@/components/ui/Tile";
 import { TRADE_ICONS } from "@/components/worker/trade-icons";
@@ -20,9 +21,11 @@ const WHEN_CHIPS: When[] = ["now", "evening", "tomorrow", "pick"];
 export function RequestForm({
   areas,
   defaultAreaSlug,
+  aiMode,
 }: {
   areas: Area[];
   defaultAreaSlug: string | null;
+  aiMode: "live" | "fixtures" | "off";
 }) {
   const { t, tKey, bi, lang } = useI18n();
   const router = useRouter();
@@ -61,6 +64,44 @@ export function RequestForm({
       },
       { timeout: 8000, maximumAge: 60_000 },
     );
+  };
+
+  type Draft = {
+    trade: Trade | null;
+    when: "now" | "evening" | "tomorrow" | null;
+    simulated: boolean;
+  };
+  const [draft, setDraft] = useState<Draft | "none" | "unavailable" | null>(null);
+  const [drafting, setDrafting] = useState(false);
+
+  const understand = async () => {
+    setDrafting(true);
+    setDraft(null);
+    try {
+      const res = await fetch("/api/ai/draft-request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: details.trim() }),
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        data?: { draft: Omit<Draft, "simulated">; simulated: boolean };
+      };
+      if (!json.ok || !json.data) setDraft("unavailable");
+      else if (!json.data.draft.trade) setDraft("none");
+      else setDraft({ ...json.data.draft, simulated: json.data.simulated });
+    } catch {
+      setDraft("unavailable");
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+  const applyDraft = (d: Draft) => {
+    if (d.trade) setTrade(d.trade);
+    if (d.when) setWhen(d.when);
+    setDraft(null);
+    setNote(t("request.draftApplied"));
   };
 
   const submit = async () => {
@@ -142,6 +183,47 @@ export function RequestForm({
             data-testid="request-details"
           />
         </label>
+        {aiMode !== "off" && details.trim().length > 2 ? (
+          <Button
+            variant="outline"
+            loading={drafting}
+            onClick={understand}
+            data-testid="request-understand"
+            {...bi("request.understand")}
+          />
+        ) : null}
+        {draft ? (
+          <div
+            role="status"
+            className="flex flex-col gap-2 rounded-lg border border-border bg-canvas p-4"
+            data-testid="request-draft"
+          >
+            {draft === "none" || draft === "unavailable" ? (
+              <p>{t(draft === "none" ? "request.draftNone" : "request.draftUnavailable")}</p>
+            ) : (
+              <>
+                <p className="flex items-center gap-2 font-semibold">
+                  {t("request.draftTitle")} <Badge kind="ai" />
+                  {draft.simulated ? (
+                    <span className="text-sm font-medium text-text-muted">
+                      {t("onboarding.voice.simulated")}
+                    </span>
+                  ) : null}
+                </p>
+                <p>{t("request.draftTrade", { trade: t(`trades.${draft.trade!}`) })}</p>
+                {draft.when ? (
+                  <p>{t("request.draftWhen", { when: tKey(`request.${draft.when}`) })}</p>
+                ) : null}
+                <p className="text-sm text-text-muted">{t("request.draftNote")}</p>
+                <Button
+                  onClick={() => applyDraft(draft)}
+                  data-testid="request-draft-use"
+                  {...bi("request.draftUse")}
+                />
+              </>
+            )}
+          </div>
+        ) : null}
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">

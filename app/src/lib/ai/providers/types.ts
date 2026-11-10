@@ -14,4 +14,6 @@ export interface AiProviders {
     transcript: string;
     allowedAreas: readonly AllowedArea[];
   }): Promise<unknown>;
+  /** Raw model output for a customer's described problem; validated by the caller. */
+  draftRequest(input: { text: string }): Promise<unknown>;
 }

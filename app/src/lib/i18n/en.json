@@ -302,7 +302,9 @@
     },
     "requests": {
       "title": "Job requests",
-      "empty": "No requests yet. New ones will appear here."
+      "empty": "No requests yet. New ones will appear here.",
+      "why": "Why you: {trade}, {km} km from you, and you are free then.",
+      "when": "When: {when}"
     },
     "reputation": {
       "title": "Your reputation",
@@ -373,7 +375,16 @@
     "whenRequired": "Please pick a date and time.",
     "pastTime": "That time has already passed.",
     "error": "Could not send your request. Try again.",
-    "outsideArea": "That place is outside Islamabad and Rawalpindi, where we work."
+    "outsideArea": "That place is outside Islamabad and Rawalpindi, where we work.",
+    "understand": "Help me choose",
+    "draftTitle": "We think you need",
+    "draftTrade": "Work: {trade}",
+    "draftWhen": "When: {when}",
+    "draftUse": "Use this",
+    "draftNone": "We could not tell which kind of work this is. Please tap one above.",
+    "draftUnavailable": "The assistant is not available. Please tap the kind of work.",
+    "draftApplied": "Filled in below. Please check it.",
+    "draftNote": "This is a suggestion. You choose."
   },
   "results": {
     "title": "Workers for you",

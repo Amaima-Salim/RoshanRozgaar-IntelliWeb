@@ -7,7 +7,8 @@ import { AvailabilityToggle } from "@/components/worker/AvailabilityToggle";
 import { requireRolePage } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 import { jobs, workerReputation } from "@/lib/db/schema";
-import { formatKarachiTime, karachiDayBounds } from "@/lib/domain/time";
+import { requestsForWorker } from "@/lib/discovery/worker-requests";
+import { formatKarachiDate, formatKarachiTime, karachiDayBounds } from "@/lib/domain/time";
 import { getT } from "@/lib/i18n/server";
 import { loadWorkerProfile } from "@/lib/worker/profile";
 
@@ -44,7 +45,7 @@ export default async function WorkerHomePage() {
 
   const { t, lang } = await getT();
   const { start, end } = karachiDayBounds(new Date());
-  const [todays, [reputation]] = await Promise.all([
+  const [todays, [reputation], openRequests] = await Promise.all([
     db
       .select({ id: jobs.id, startAt: jobs.startAt, endAt: jobs.endAt, status: jobs.status })
       .from(jobs)
@@ -58,6 +59,7 @@ export default async function WorkerHomePage() {
       )
       .orderBy(asc(jobs.startAt)),
     db.select().from(workerReputation).where(eq(workerReputation.workerId, user.id)),
+    requestsForWorker(user.id),
   ]);
   const name = lang === "ur" ? (user.nameUr ?? user.name) : user.name;
   const hasReviews = !!reputation && reputation.reviewCount > 0 && reputation.avgStars !== null;
@@ -88,7 +90,35 @@ export default async function WorkerHomePage() {
           </Card>
         </div>
         <Card title={t("workerHome.requests.title")} icon={<Inbox />}>
-          <Empty testId="requests-empty">{t("workerHome.requests.empty")}</Empty>
+          {openRequests.length === 0 ? (
+            <Empty testId="requests-empty">{t("workerHome.requests.empty")}</Empty>
+          ) : (
+            <ul className="flex flex-col gap-3" data-testid="requests-list">
+              {openRequests.map((r) => (
+                <li key={r.id} className="flex flex-col gap-1 rounded-lg bg-canvas p-3">
+                  <p className="font-semibold">
+                    {t(`trades.${r.trade}`)} · {lang === "ur" ? r.areaNameUr : r.areaNameEn}
+                  </p>
+                  {r.summaryText ? (
+                    <p dir="auto" className="text-text-muted">
+                      {r.summaryText}
+                    </p>
+                  ) : null}
+                  <p className="num text-sm">
+                    {t("workerHome.requests.when", {
+                      when: `${formatKarachiDate(r.startAt, lang)}, ${formatKarachiTime(r.startAt, lang)}`,
+                    })}
+                  </p>
+                  <p className="text-sm text-text-muted">
+                    {t("workerHome.requests.why", {
+                      trade: t(`trades.${r.trade}`),
+                      km: r.why.distanceKm.toFixed(1),
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
         <Card title={t("workerHome.schedule.title")} icon={<CalendarCheck />}>
           {todays.length === 0 ? (

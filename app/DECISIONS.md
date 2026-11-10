@@ -176,6 +176,26 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
 - **Ranking prior:** the Bayesian average uses a prior mean of 3.5 stars with C = 3 (`ranking-config.ts`), so a worker
   with no reviews scores as average, not as zero. Version `RANKING_VERSION` in the same file.
 
+### D-49 — Phase 3 choices
+
+- **Results are rendered on the server** (`/c/request/[id]`) with the same `findCandidates` service the
+  `GET /api/requests/[id]/candidates` route uses, so the page and the API cannot disagree. "Widen the radius"
+  is a `?radius=20` link, not hidden state.
+- **"This evening" = 18:00 today** (or in 30 minutes if that has passed); **"Tomorrow" = 10:00 tomorrow**
+  (Asia/Karachi). A chosen time, not a window. Customers who want another time use "Pick a time".
+- **Toggle vs scheduled time:** the availability toggle only removes a worker from "now" searches
+  (D-08). A scheduled request is matched on weekly hours and booked jobs, so a worker with the toggle off can
+  still appear for tomorrow; this is on purpose, not a bug.
+- **Request drafting (AI-03) covers typed text only for now.** Rules first (trade and rough time keywords in
+  English, Roman Urdu and Urdu script), Gemini only when the rules find no trade, output validated
+  by a strict Zod schema, and the customer must press "Use this". Voice and photo drafting for requests are
+  **not built yet** (photo is a Should; voice needs the customer-side recorder).
+- **Maps:** Leaflet with OpenStreetMap tiles, no API key, loaded only on the results page, attribution shown.
+  Pins use the rounded public coordinates (about 500 m); the exact base point never leaves the server.
+- **Worker photos are not shown to customers yet:** media is owner-only until a phase adds a public
+  conversation-scoped route, so cards use initials.
+- **Typical price** on a worker profile is the mean of that worker's completed jobs, else the indicative rate.
+
 ## Derived UI states
 
 States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as they are built.

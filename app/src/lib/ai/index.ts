@@ -9,13 +9,20 @@ import type { StepId } from "@/lib/domain/worker-profile";
 import { log } from "@/lib/log";
 import { AiUnavailableError } from "./errors";
 import { FIXTURE_TRANSCRIPTS } from "./fixtures";
-import { EXTRACT_SYSTEM, extractUserPrompt } from "./prompts";
+import {
+  DRAFT_REQUEST_SYSTEM,
+  EXTRACT_SYSTEM,
+  draftRequestUserPrompt,
+  extractUserPrompt,
+} from "./prompts";
 import { geminiJson } from "./providers/gemini";
 import { groqTranscribe } from "./providers/groq";
 import type { AiProviders } from "./providers/types";
+import { draftRequestByRules, emptyRequestDraft, type RequestDraft } from "./request-rules";
 import { extractByRules, type AllowedArea } from "./rules";
 import {
   emptyDraft,
+  requestDraftSchema,
   restrictToStep,
   workerProfileDraftSchema,
   type Transcript,
@@ -44,6 +51,14 @@ function liveProviders(): AiProviders {
     async extractWorkerProfile({ stepId, transcript, allowedAreas }) {
       if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
       return geminiJson(EXTRACT_SYSTEM, extractUserPrompt(stepId, transcript, allowedAreas), {
+        apiKey: ai.geminiApiKey,
+        model: ai.geminiModel,
+        timeoutMs: ai.timeoutMs,
+      });
+    },
+    async draftRequest({ text }) {
+      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
+      return geminiJson(DRAFT_REQUEST_SYSTEM, draftRequestUserPrompt(text), {
         apiKey: ai.geminiApiKey,
         model: ai.geminiModel,
         timeoutMs: ai.timeoutMs,
@@ -121,5 +136,33 @@ export async function extractWorkerProfile(input: {
     // Provider down, timed out or rate limited: the rules found nothing, so ask again by tap.
     if (!(err instanceof AiUnavailableError)) log.warn("ai.extract_failed", { error: err });
     return { draft: emptyDraft(), source: "none", simulated };
+  }
+}
+
+/**
+ * Request drafting (AI-03): which trade fits the described problem, and a rough time. Rules first;
+ * the LLM only when the rules found no trade, and only in live mode. The customer confirms.
+ */
+export async function draftRequest(input: {
+  text: string;
+}): Promise<AiResult<{ draft: RequestDraft; source: "rules" | "llm" | "none" }>> {
+  const { mode } = getConfig().ai;
+  if (mode === "off") throw new AiUnavailableError("off");
+  const simulated = mode === "fixtures";
+
+  const byRules = draftRequestByRules(input.text);
+  if (byRules.trade !== null || simulated) {
+    return { draft: byRules, source: byRules.trade !== null ? "rules" : "none", simulated };
+  }
+  const providers = override ?? liveProviders();
+  try {
+    const parsed = requestDraftSchema.safeParse(await providers.draftRequest(input));
+    if (!parsed.success) return { draft: byRules, source: "none", simulated };
+    // Keep a time the rules found; the model's trade is a proposal the customer confirms.
+    const draft = { trade: parsed.data.trade, when: byRules.when ?? parsed.data.when };
+    return { draft, source: draft.trade !== null ? "llm" : "none", simulated };
+  } catch (err) {
+    if (!(err instanceof AiUnavailableError)) log.warn("ai.draft_request_failed", { error: err });
+    return { draft: emptyRequestDraft(), source: "none", simulated };
   }
 }

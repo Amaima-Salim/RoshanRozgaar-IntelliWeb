@@ -68,3 +68,14 @@ export function restrictToStep(
   }
   return out;
 }
+
+/** What the AI may propose for a customer's request (AI-03): a trade and a rough time, nothing else. */
+export const requestDraftSchema = z.strictObject({
+  trade: z.enum(TRADES).nullable(),
+  when: z.enum(["now", "evening", "tomorrow"]).nullable(),
+});
+
+/** Request body of `POST /api/ai/draft-request`. */
+export const draftRequestBodySchema = z.strictObject({
+  text: z.string().trim().min(1).max(500),
+});

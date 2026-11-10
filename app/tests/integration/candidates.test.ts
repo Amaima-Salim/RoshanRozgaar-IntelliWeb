@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { db, getSqlClient } from "@/lib/db/client";
-import { areas, users } from "@/lib/db/schema";
+import { areas, requests, users } from "@/lib/db/schema";
 import { findCandidates, type CandidateRequest } from "@/lib/discovery/candidates";
+import { requestsForWorker } from "@/lib/discovery/worker-requests";
 import type { WorkerProfileInput } from "@/lib/domain/worker-profile";
 import { saveWorkerProfile } from "@/lib/worker/profile";
 
@@ -100,5 +101,48 @@ describe("candidates (O2)", () => {
     const far = await worker("cand-far");
     const res = await findCandidates(req(), { now: NOW, radiusKm: 150 });
     expect(res.candidates.map((c) => c.workerId)).toContain(far);
+  });
+});
+
+describe("requests for a worker (why you)", () => {
+  async function customerRequest(over: Partial<typeof requests.$inferInsert> = {}) {
+    const s = randomUUID().slice(0, 8);
+    const [c] = await db
+      .insert(users)
+      .values({ name: `C ${s}`, email: `cu-${s}@example.com`, role: "customer" })
+      .returning();
+    const [r] = await db
+      .insert(requests)
+      .values({
+        customerId: c!.id,
+        trade: "carpenter",
+        source: "tap",
+        lat: 33.7,
+        lng: 73.0,
+        areaSlug: "cand-near",
+        startAt: MONDAY_10_PKT,
+        durationMin: 60,
+        urgency: "scheduled",
+        ...over,
+      })
+      .returning();
+    return r!.id;
+  }
+
+  it("lists open requests of the worker's trade that are near and in their hours", async () => {
+    await area("cand-near", 33.7, 73.0);
+    await area("cand-far", 34.6, 73.0);
+    const w = await worker("cand-near");
+    const near = await customerRequest();
+    const far = await customerRequest({ lat: 34.6, areaSlug: "cand-far" });
+    const wrongTrade = await customerRequest({ trade: "plumber" });
+    const offHours = await customerRequest({ startAt: MONDAY_03_PKT });
+    const cancelled = await customerRequest({ status: "cancelled" });
+
+    const rows = await requestsForWorker(w, { now: NOW });
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(near);
+    for (const id of [far, wrongTrade, offHours, cancelled]) expect(ids).not.toContain(id);
+    expect(rows.find((r) => r.id === near)?.why.distanceKm).toBeLessThan(1);
   });
 });

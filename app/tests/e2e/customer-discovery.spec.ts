@@ -106,3 +106,51 @@ test("the request page works in Urdu (RTL)", async ({ page, baseURL }) => {
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
 });
+
+test.describe("request drafting (AI-03)", () => {
+  test("a described problem proposes a trade the customer must confirm", async ({
+    page,
+    baseURL,
+  }) => {
+    await setLanguage(page, baseURL!, "en");
+    await signInWithDemoAccount(page, "customer", CUSTOMER_1);
+    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    await page.locator("html[data-hydrated='true']").waitFor({ state: "attached" });
+    await page
+      .getByTestId("request-details")
+      .fill("The bedroom fan stopped, need someone this evening");
+    await page.getByTestId("request-understand").click();
+    await expect(page.getByTestId("request-draft")).toContainText("Electrician");
+    // Nothing is chosen until the customer says so.
+    await expect(page.getByTestId("trade-electrician")).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId("request-draft-use").click();
+    await expect(page.getByTestId("trade-electrician")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("when-evening")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+const OFF_URL = `http://localhost:${Number(process.env.E2E_PORT ?? 3200) + 1}`;
+
+test.describe("request with AI_MODE=off", () => {
+  test.use({ baseURL: OFF_URL });
+
+  test("no assistant button, and the tap path still reaches results", async ({ page, baseURL }) => {
+    await setLanguage(page, baseURL!, "en");
+    await startRequest(page, "electrician", nextWeekday(3, "10:00"));
+    await expect(page.getByTestId("candidate").first()).toBeVisible();
+    await open(page, "/c/request/new");
+    await page.getByTestId("request-details").fill("The fan stopped");
+    await expect(page.getByTestId("request-understand")).toHaveCount(0);
+  });
+});
+
+test("request endpoints refuse signed-out callers", async ({ request }) => {
+  for (const [method, path] of [
+    ["post", "/api/requests"],
+    ["post", "/api/ai/draft-request"],
+    ["get", "/api/requests/00000000-0000-4000-8000-000000000000/candidates"],
+  ] as const) {
+    const res = await request[method](path, method === "post" ? { data: {} } : undefined);
+    expect(res.status(), path).toBe(401);
+  }
+});
