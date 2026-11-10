@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import * as schema from "@/lib/db/schema";
 import { demoPhone } from "./demo-phone";
 import { emailOtpPlugin } from "./email-otp";
+import { trustedOriginsFor } from "./origins";
 
 function createAuth() {
   const config = getConfig();
@@ -13,7 +14,7 @@ function createAuth() {
     appName: "Roshan Rozgar",
     baseURL: config.appUrl,
     secret: config.sessionSecret,
-    trustedOrigins: [config.appUrl],
+    trustedOrigins: trustedOriginsFor(config.appUrl, config.isProduction),
     socialProviders: config.auth.googleEnabled
       ? {
           google: {

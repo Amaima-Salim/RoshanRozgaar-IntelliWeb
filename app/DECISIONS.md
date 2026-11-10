@@ -301,3 +301,16 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
   masked form. Card photos are private `media` rows (owner-only through `/api/media/[id]`).
 - **Not wired into ranking/booking.** `demo_verified` is shown to the worker only; no trust score uses it yet.
 - Demo CNICs and flow: see README "Seeded, simulated, and mocked".
+
+### D-57 — Sign-in only worked on exactly `APP_URL` in development
+
+- **What was wrong:** nothing in `.env.local`, the migrations or the OTP code. Phone OTP, email OTP, Google redirect and
+  the demo accounts all worked at `http://localhost:3000`. Opened as `http://127.0.0.1:3000` or a LAN address (a phone
+  on the same Wi-Fi), the dev server returned 403 for its own JS chunks (Next's `allowedDevOrigins`), so the page never
+  hydrated and every sign-in button did nothing, with no error shown. Separately, Better Auth only trusted `APP_URL`,
+  so a POST from any other origin that carried a session cookie got `INVALID_ORIGIN`.
+- **Fix:** `allowedDevOrigins` in `next.config.ts` (dev server only) and `trustedOriginsFor()` in
+  `src/lib/auth/origins.ts`, which in non-production also trusts `localhost`, `127.0.0.1`, `[::1]` and private LAN
+  ranges on the app's own port. Production trusts `APP_URL` only. A foreign origin is still refused.
+- **Still true:** the per-IP limit of 5 code requests per minute applies to the demo accounts too (each click is one
+  send plus one verify), so a sixth click inside a minute shows "too many requests". That is the limit working.

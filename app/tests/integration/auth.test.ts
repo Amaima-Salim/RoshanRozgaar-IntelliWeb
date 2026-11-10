@@ -6,13 +6,18 @@ import { users, verifications } from "@/lib/db/schema";
 
 const BASE = "http://localhost:3100/api/auth";
 
-async function post(path: string, body: unknown, cookie?: string) {
+async function post(
+  path: string,
+  body: unknown,
+  cookie?: string,
+  origin = "http://localhost:3100",
+) {
   const res = await getAuth().handler(
     new Request(`${BASE}${path}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        origin: "http://localhost:3100",
+        origin,
         ...(cookie && { cookie }),
       },
       body: JSON.stringify(body),
@@ -138,5 +143,16 @@ describe("role can't be set by the client (docs/05 §2)", () => {
     await post("/demo-phone/send", { phone });
     const res = await post("/demo-phone/verify", { phone, code: "123456", role: "customer" });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("trusted origins (regression: sign-in dead on 127.0.0.1 / LAN)", () => {
+  // Better Auth skips its origin check under NODE_ENV=test, so assert the list it enforces.
+  it("trusts loopback and LAN origins on the app port, and nothing foreign", async () => {
+    const { trustedOrigins } = await getAuth().$context;
+    expect(trustedOrigins).toContain("http://localhost:3100");
+    expect(trustedOrigins).toContain("http://127.0.0.1:3100");
+    expect(trustedOrigins).toContain("http://192.168.*.*:3100");
+    expect(trustedOrigins.some((o) => o.includes("evil"))).toBe(false);
   });
 });
