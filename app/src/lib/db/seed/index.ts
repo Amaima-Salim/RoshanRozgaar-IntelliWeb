@@ -7,7 +7,17 @@ import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { createDb, type Db } from "../client";
 import { loadEnvFiles } from "../load-env";
-import { areas, users, workerProfiles, workerSchedule } from "../schema";
+import {
+  areas,
+  conversations,
+  jobEvents,
+  jobs,
+  offers,
+  requests,
+  users,
+  workerProfiles,
+  workerSchedule,
+} from "../schema";
 import {
   AREAS,
   DEMO_CUSTOMERS,
@@ -187,6 +197,85 @@ export async function seed(db: Db) {
         );
       }
     }
+  });
+
+  // Edge case 3 (docs/01 §7): a nearby worker who is engaged for the next 2 hours, backed by a real
+  // request → conversation → offer → job chain so the engaged state is the real thing, not a flag.
+  // Times are relative to when the seed runs, so re-seed shortly before a demo.
+  await db.transaction(async (tx) => {
+    const worker = WORKERS.find((w) => w.edgeCase?.startsWith("3:"));
+    const customer = DEMO_CUSTOMERS[0];
+    if (!worker || !customer) return;
+    const area = areaBySlug(EDGE_CASE_REFERENCE_AREA);
+    const ids = {
+      request: seedUuid("edge3:request"),
+      conversation: seedUuid("edge3:conversation"),
+      offer: seedUuid("edge3:offer"),
+      job: seedUuid("edge3:job"),
+      customer: seedUuid(customer.key),
+      worker: seedUuid(worker.key),
+    };
+    // Children first; the job's events cascade with it.
+    await tx.delete(jobs).where(sql`${jobs.id} = ${ids.job}`);
+    await tx.delete(offers).where(sql`${offers.id} = ${ids.offer}`);
+    await tx.delete(conversations).where(sql`${conversations.id} = ${ids.conversation}`);
+    await tx.delete(requests).where(sql`${requests.id} = ${ids.request}`);
+
+    const startAt = new Date();
+    const endAt = new Date(startAt.getTime() + 2 * 3_600_000);
+    await tx.insert(requests).values({
+      id: ids.request,
+      customerId: ids.customer,
+      trade: worker.trade,
+      summaryText: "Demo booking: keeps this worker engaged for the next 2 hours.",
+      summaryLang: "en",
+      source: "tap",
+      lat: area.lat,
+      lng: area.lng,
+      areaSlug: area.slug,
+      addressText: "House 1, Street 1 (demo address)",
+      startAt,
+      durationMin: 120,
+      urgency: "now",
+      status: "booked",
+      isSeeded: true,
+    });
+    await tx.insert(conversations).values({
+      id: ids.conversation,
+      requestId: ids.request,
+      customerId: ids.customer,
+      workerId: ids.worker,
+      status: "booked",
+      isSeeded: true,
+    });
+    await tx.insert(offers).values({
+      id: ids.offer,
+      conversationId: ids.conversation,
+      proposerId: ids.worker,
+      pricePkr: worker.ratePkr,
+      startAt,
+      durationMin: 120,
+      status: "accepted",
+      respondedAt: startAt,
+      isSeeded: true,
+    });
+    await tx.insert(jobs).values({
+      id: ids.job,
+      requestId: ids.request,
+      conversationId: ids.conversation,
+      offerId: ids.offer,
+      customerId: ids.customer,
+      workerId: ids.worker,
+      pricePkr: worker.ratePkr,
+      startAt,
+      endAt,
+      status: "confirmed",
+      isSeeded: true,
+    });
+    await tx
+      .insert(jobEvents)
+      .values({ jobId: ids.job, fromStatus: null, toStatus: "confirmed", actorId: ids.customer });
+    summary.push(`  edge case 3 → ${worker.name} has a confirmed job until ${endAt.toISOString()}`);
   });
 
   const counts = await db.execute<{ trade: string; n: number }>(

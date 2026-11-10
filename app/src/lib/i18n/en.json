@@ -284,6 +284,127 @@
     "5": "Fri",
     "6": "Sat"
   },
+  "booking": {
+    "accept": {
+      "title": "Confirm this booking",
+      "intro": "Please check everything. Confirming books {name} for you.",
+      "introWorker": "Please check everything. Confirming books you for {name}.",
+      "worker": "Worker",
+      "customer": "Customer",
+      "price": "Fixed price",
+      "priceNote": "This price will not change.",
+      "when": "When",
+      "duration": "{minutes} minutes",
+      "area": "Area",
+      "addressCustomer": "Your exact address is shared with the worker only after you confirm.",
+      "addressWorker": "The customer's exact address appears after you confirm.",
+      "noPayment": "You do not need to pay to book. Any payment comes after the job.",
+      "button": "Confirm booking · {amount}",
+      "pending": "Confirming…",
+      "notNow": "Not now",
+      "offline": "You are offline. Reconnect to confirm. Bookings are never saved for later.",
+      "successTitle": "Booked!",
+      "successBody": "{name} is booked for {when}.",
+      "successNote": "Nothing has been paid.",
+      "viewJob": "View the job",
+      "unavailableTitle": "This offer can't be accepted",
+      "backToChat": "Back to the chat",
+      "retry": "Try again"
+    },
+    "conflict": {
+      "title": "Someone else booked this worker a moment ago",
+      "body": "Nothing was confirmed or charged for you.",
+      "alternatives": "Other workers who are free at that time",
+      "none": "No other free workers right now. Try another time.",
+      "seeAll": "See all workers",
+      "message": "Message"
+    },
+    "reason": {
+      "offer_withdrawn": "This offer was withdrawn.",
+      "offer_declined": "This offer was declined.",
+      "offer_countered": "This offer was replaced by a newer one. Open the chat to see it.",
+      "offer_expired": "This offer has expired.",
+      "offer_accepted": "This offer was already accepted.",
+      "offer_time_passed": "The time in this offer has already passed.",
+      "request_booked": "This request is already booked.",
+      "request_expired": "This request has expired.",
+      "request_cancelled": "This request was cancelled.",
+      "conversation_declined": "This conversation was closed because the request was booked.",
+      "conversation_closed": "This conversation is closed.",
+      "worker_outside_hours": "The worker is not working at that time.",
+      "worker_toggle_off": "The worker is not taking jobs right now.",
+      "own_offer": "You can't accept your own offer. Wait for the other person.",
+      "generic": "This offer can't be accepted any more."
+    },
+    "job": {
+      "title": "Job",
+      "status": {
+        "confirmed": "Confirmed",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "with": "{trade} with {name}",
+      "when": "When",
+      "price": "Fixed price",
+      "area": "Area",
+      "address": "Exact address",
+      "addressMissing": "No address was added. Ask in the chat.",
+      "note": "Customer's note",
+      "noNote": "No note",
+      "openChat": "Open chat",
+      "start": "Start the job",
+      "requestComplete": "The job is done",
+      "confirmComplete": "Yes, the job is done",
+      "cancel": "Cancel the job",
+      "cancelWhy": "Why are you cancelling?",
+      "cancelConfirm": "Yes, cancel the job",
+      "keep": "No, keep it",
+      "waitingCustomer": "Waiting for the customer to confirm the job is done.",
+      "customerAsked": "{name} says the job is done. Please confirm if it is.",
+      "waitingWorker": "Waiting for the worker to finish.",
+      "completedNote": "This job is complete.",
+      "cancelledNote": "This job was cancelled.",
+      "windowFree": "The worker's time is free again.",
+      "timeline": "What happened",
+      "event": {
+        "confirmed": "Booked",
+        "in_progress": "Started",
+        "completion_requested": "Worker says the job is done",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "by": {
+        "customer": "by the customer",
+        "worker": "by the worker",
+        "system": "by the system"
+      },
+      "cancelReasons": {
+        "plans_changed": "Plans changed",
+        "cannot_make_it": "Cannot make it",
+        "price_or_time": "Price or time problem",
+        "other": "Other reason"
+      },
+      "changed": "The other person updated this job. Here is the latest.",
+      "offline": "You are offline. Actions are paused until you reconnect.",
+      "refreshing": "Updating…",
+      "actionFailed": "That did not work. Try again.",
+      "paymentNote": "Payment, if any, comes after the job."
+    },
+    "bookings": {
+      "title": "My bookings",
+      "empty": "No bookings yet.",
+      "emptyAction": "Find a worker",
+      "open": "Open"
+    },
+    "engaged": {
+      "title": "Engaged",
+      "now": "You are engaged now until {time}.",
+      "next": "Next job: {when}",
+      "none": "No upcoming jobs.",
+      "view": "Open the job"
+    }
+  },
   "workerHome": {
     "greeting": "Hello, {name}",
     "editProfile": "Edit profile",

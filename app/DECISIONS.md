@@ -206,4 +206,43 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
 - Worker onboarding: the six steps, read-back, voice box states (listening / processing / heard / not understood), consent dialog, dashboard empty states (derived until compared with Figma 04–06).
 - Customer onboarding: location denied / outside the service area notes (derived).
 - Landing: role chooser for a signed-in user with no role yet (saving / error text).
+- Booking (Phase 5): accept panel, success, conflict with alternatives, "offer no longer open", job page (all four
+  statuses, cancel-with-reason, waiting states), customer bookings list, worker Engaged card (derived; Figma 11–13 not
+  yet compared).
 - All Phase 0 screens are derived until compared against Figma (D-40).
+
+### D-55 — Phase 5 choices (booking and availability consistency)
+
+- **Accepting is the booking** (D-11, unchanged). Nothing in the accept path reads or writes `payments`; the accept
+  screen says "payment not needed to book". Phase 7 payments (JazzCash, Easypaisa, cash) are not touched.
+- **Job states vs rows.** `jobs.status` only stores `confirmed → in_progress → completed | cancelled`. `requested`,
+  `negotiating`, `declined` and `expired` live in the request / conversation / offer rows. `job-machine.ts` models the
+  whole `docs/01` §5 table in one pure function and is tested cell by cell.
+- **Bookings are serialised per worker with `SELECT … FOR UPDATE` on `worker_profiles`** (lock order: offer → request
+  → worker). Found by the 50-round race test: with only the exclusion constraint, two parallel inserts each wait on the
+  other's uncommitted row and Postgres aborts one with **deadlock 40P01** instead of a clean `23P01`. The lock makes the
+  loser read the winner's committed job and get `CONFLICT_BOOKED`. The constraint stays as the final arbiter against any
+  other writer (a raw-SQL test proves it).
+- **Idempotency:** key stored as `userId:route:key` in `idempotency_keys`, guarded by a transaction advisory lock so two
+  concurrent requests with one key both resolve to the same job. Failures are not stored, so a retry after a conflict
+  asks the database again.
+- **Availability re-check on accept** uses the same `checkWorkerFree` as discovery, so an offer outside the worker's
+  weekly hours is rejected with `CONFLICT_STATE worker_outside_hours`, not just overlap.
+- **Cancel:** reason required (stored as a code such as `plans_changed`, shown translated). The window is freed by the
+  status change itself. The request becomes `cancelled` when the **customer** cancels and returns to `open` when the
+  **worker** cancels, so the customer can pick someone else. Cancelling an `in_progress` job is refused.
+- **Optimistic concurrency:** the client sends the `version` it saw; the update is
+  `WHERE id AND version AND status`. Zero rows → `CONFLICT_STATE` with the current row.
+- **Lazy expiry** (`expireStale`, no cron): offers pending longer than `OFFER_TTL_HOURS` and open requests with no
+  request / message / offer activity for that long are expired when someone looks (accept, job pages, worker home).
+- **The Accept button is a page, not a modal:** `/c/offer/[id]` and `/w/offer/[id]` restate the stored terms from the
+  server, and the offer card (Phase 4) only needs to link its Accept button there. Alternatives after a lost race are
+  shown to customers only.
+- **Exact address** (`requests.address_text`) is returned only to the assigned worker, only from the job view.
+- **Customer "Bookings" tab** (`/c/history`) now lists the customer's jobs (it was a placeholder).
+- **Seed edge case 3** (nearby worker booked for the next 2 h) is Naveed Akhtar with a real request → conversation →
+  offer → job chain, times relative to when the seed runs. Re-seed shortly before a demo.
+- **Cancelling an open request** (`POST /api/requests/[id]/cancel`, customer only, reason required but not stored: the
+  table has no column for it) closes its conversations and withdraws its pending offers.
+- Not done here (other phases): offer create/counter/decline/withdraw routes and the offer card (Phase 4),
+  payments (Phase 7), reviews (Phase 6). No system chat message is written on booking.

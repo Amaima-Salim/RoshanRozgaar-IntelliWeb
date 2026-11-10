@@ -119,6 +119,7 @@ All code is reviewed and run by the team. _TODO: expand with specifics per phase
 
 | Item                                             | Real or simulated                                                                                                                 | How to tell in the UI                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Seeded booking for Naveed Akhtar                 | **Fictional, seeded**: one confirmed 2-hour job starting when the seed ran, so he shows as engaged                                | "Demo data" tag                                       |
 | Workers (24), customers (3), demo worker         | **Fictional, seeded** (`is_seeded = true`); names invented, phones use the fake `0300-0000XXX` pattern, emails use `@example.com` | "Demo data" tag on seeded content                     |
 | Area locations (8 areas in Islamabad/Rawalpindi) | **Approximate** centroids, written from general map knowledge, not surveyed                                                       | —                                                     |
 | Demo phone login + one-tap demo accounts         | **Mock**: a fixed code, no SMS is sent                                                                                            | "Demo login — no real SMS is sent" banner on `/login` |
@@ -144,7 +145,8 @@ of the first commit._ Open-source libraries are credited below.
 - "Message" on a worker profile is disabled until chat arrives (Phase 4). Worker photos are not shown to customers yet.
 - Seeded workers have no reviews until Phase 6, so ratings show "No reviews yet" everywhere.
 - The Figma comparison for the request, results and profile screens (rows 07–09) has not been done.
-- Phases 4–9 are not built yet.
+- The Figma comparison for the booking screens (rows 11–13: accept, conflict, job pages) has not been done; they are built from the written spec and `docs/03` patterns.
+- Phases 4 and 6–9 are not built yet. Booking (Phase 5) exists as the accept screen (`/c/offer/[id]`, `/w/offer/[id]`) and job pages (`/c/job/[id]`, `/w/job/[id]`); until chat offers (Phase 4) ship, offers can only be created in tests and the E2E helper.
 - `btree_gist` (needed for the no-double-booking constraint) is verified on Docker Postgres; not yet verified on Neon.
 - Area coordinates are approximate.
 - Email codes are sent from a personal Gmail account, which allows about **500 emails per rolling 24 hours**. When the

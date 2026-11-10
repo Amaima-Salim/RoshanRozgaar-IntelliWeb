@@ -1,10 +1,11 @@
-import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
-import { CalendarCheck, Inbox, Star } from "lucide-react";
+import { and, asc, eq, gt, gte, inArray, lt } from "drizzle-orm";
+import { CalendarCheck, CircleDot, Inbox, Star } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AvailabilityToggle } from "@/components/worker/AvailabilityToggle";
 import { requireRolePage } from "@/lib/auth/guards";
+import { expireStale } from "@/lib/booking/expiry";
 import { db } from "@/lib/db/client";
 import { jobs, workerReputation } from "@/lib/db/schema";
 import { requestsForWorker } from "@/lib/discovery/worker-requests";
@@ -44,8 +45,10 @@ export default async function WorkerHomePage() {
   if (!profile.onboardingComplete) redirect("/w/onboarding");
 
   const { t, lang } = await getT();
-  const { start, end } = karachiDayBounds(new Date());
-  const [todays, [reputation], openRequests] = await Promise.all([
+  await expireStale();
+  const now = new Date();
+  const { start, end } = karachiDayBounds(now);
+  const [todays, [reputation], openRequests, [nextJob]] = await Promise.all([
     db
       .select({ id: jobs.id, startAt: jobs.startAt, endAt: jobs.endAt, status: jobs.status })
       .from(jobs)
@@ -60,7 +63,20 @@ export default async function WorkerHomePage() {
       .orderBy(asc(jobs.startAt)),
     db.select().from(workerReputation).where(eq(workerReputation.workerId, user.id)),
     requestsForWorker(user.id),
+    db
+      .select({ id: jobs.id, startAt: jobs.startAt, endAt: jobs.endAt, status: jobs.status })
+      .from(jobs)
+      .where(
+        and(
+          eq(jobs.workerId, user.id),
+          inArray(jobs.status, ["confirmed", "in_progress"]),
+          gt(jobs.endAt, now),
+        ),
+      )
+      .orderBy(asc(jobs.startAt))
+      .limit(1),
   ]);
+  const engagedNow = !!nextJob && nextJob.startAt <= now;
   const name = lang === "ur" ? (user.nameUr ?? user.name) : user.name;
   const hasReviews = !!reputation && reputation.reviewCount > 0 && reputation.avgStars !== null;
 
@@ -78,6 +94,27 @@ export default async function WorkerHomePage() {
       <div className="grid gap-6 xl:grid-cols-3 xl:items-start">
         <div className="flex flex-col gap-6">
           <AvailabilityToggle initial={profile.isAvailable} />
+          <Card title={t("booking.engaged.title")} icon={<CircleDot />}>
+            {nextJob ? (
+              <div className="flex flex-col gap-2" data-testid="engaged-block">
+                <p className="num text-lg font-semibold">
+                  {engagedNow
+                    ? t("booking.engaged.now", { time: formatKarachiTime(nextJob.endAt, lang) })
+                    : t("booking.engaged.next", {
+                        when: `${formatKarachiDate(nextJob.startAt, lang)}, ${formatKarachiTime(nextJob.startAt, lang)}`,
+                      })}
+                </p>
+                <Link
+                  href={`/w/job/${nextJob.id}`}
+                  className="inline-flex min-h-touch items-center font-medium text-primary underline"
+                >
+                  {t("booking.engaged.view")}
+                </Link>
+              </div>
+            ) : (
+              <Empty testId="engaged-empty">{t("booking.engaged.none")}</Empty>
+            )}
+          </Card>
           <Card title={t("workerHome.reputation.title")} icon={<Star />}>
             {hasReviews ? (
               <p className="num text-lg font-semibold" data-testid="reputation">
@@ -126,8 +163,13 @@ export default async function WorkerHomePage() {
           ) : (
             <ul className="flex flex-col gap-2" data-testid="schedule-list">
               {todays.map((j) => (
-                <li key={j.id} className="num rounded-lg bg-canvas p-3 font-semibold">
-                  {formatKarachiTime(j.startAt, lang)} – {formatKarachiTime(j.endAt, lang)}
+                <li key={j.id}>
+                  <Link
+                    href={`/w/job/${j.id}`}
+                    className="num block rounded-lg bg-canvas p-3 font-semibold hover:bg-primary-soft"
+                  >
+                    {formatKarachiTime(j.startAt, lang)} – {formatKarachiTime(j.endAt, lang)}
+                  </Link>
                 </li>
               ))}
             </ul>

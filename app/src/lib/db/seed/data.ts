@@ -168,6 +168,7 @@ export const WORKERS: SeedWorker[] = [
     areas: ["g-9", "i-8"],
     available: true,
     schedule: "day",
+    edgeCase: "3: nearby, already booked for the next 2 h (a real confirmed job row)",
   },
   {
     key: "w-elec-4",
