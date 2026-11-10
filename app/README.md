@@ -63,12 +63,13 @@ port 3200 (set `E2E_PORT` to change it).
 `AI_MODE=live|fixtures|off` (default `off`). Every AI call has a timeout (`AI_TIMEOUT_MS`), a Zod schema and a
 non-AI fallback; AI output is a draft the person confirms and never decides price, booking, payment or trust.
 
-| Task                       | Service                                                                                             | Used for                                                | Free tier | Fallback                                          | Data sent                                                                                | Status                                                                                                           |
-| -------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Speech to text (AI-01)     | Groq Whisper (`whisper-large-v3-turbo`)                                                             | A worker's spoken onboarding answer                     | Yes       | Browser Web Speech (`ur-PK`, Chromium) → tap path | The audio clip (≤ 20 s), nothing else                                                    | **Not yet run against the live API** (no key at this point); code paths covered by tests with injected providers |
-| Profile extraction (AI-02) | Rule-based Urdu/Roman Urdu parser first; Google Gemini (JSON mode) only when the rules find nothing | Turns the transcript of ONE step into that step's field | Yes       | Empty draft → the tap tiles                       | The transcript text and the allowed area names; never names, phones, emails or addresses | **Not yet run against the live API**; the rule parser is fully unit-tested                                       |
-| Spoken prompts             | Browser `speechSynthesis` for now; pre-generated audio files once the team picks a tool             | "Listen" buttons in Urdu and English on each screen     | n/a       | Both texts shown in an expandable panel           | The instruction text (in the browser)                                                    | Audio-generation tool **not chosen yet**                                                                         |
-| AI coding assistants       | Claude (Anthropic), via Claude Code                                                                 | Wrote and reviewed code in this repo                    | n/a       | n/a                                               | Source code                                                                              | See "AI coding assistants" below                                                                                 |
+| Task                       | Service                                                                                                                          | Used for                                                     | Free tier | Fallback                                          | Data sent                                                                                | Status                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Speech to text (AI-01)     | Groq Whisper (`whisper-large-v3-turbo`)                                                                                          | A worker's spoken onboarding answer                          | Yes       | Browser Web Speech (`ur-PK`, Chromium) → tap path | The audio clip (≤ 20 s), nothing else                                                    | **Not yet run against the live API** (no key at this point); code paths covered by tests with injected providers |
+| Profile extraction (AI-02) | Rule-based Urdu/Roman Urdu parser first; Google Gemini (JSON mode) only when the rules find nothing                              | Turns the transcript of ONE step into that step's field      | Yes       | Empty draft → the tap tiles                       | The transcript text and the allowed area names; never names, phones, emails or addresses | **Not yet run against the live API**; the rule parser is fully unit-tested                                       |
+| Request drafting (AI-03)   | Rule-based keyword matcher first (English, Roman Urdu, Urdu script); Google Gemini (JSON mode) only when the rules find no trade | Proposes the trade and a rough time from a typed description | Yes       | Trade tiles and When chips                        | The typed description only (no name, phone or address)                                   | **Typed text only.** Not yet run against the live API; voice and photo request drafting are not built            |
+| Spoken prompts             | Browser `speechSynthesis` for now; pre-generated audio files once the team picks a tool                                          | "Listen" buttons in Urdu and English on each screen          | n/a       | Both texts shown in an expandable panel           | The instruction text (in the browser)                                                    | Audio-generation tool **not chosen yet**                                                                         |
+| AI coding assistants       | Claude (Anthropic), via Claude Code                                                                                              | Wrote and reviewed code in this repo                         | n/a       | n/a                                               | Source code                                                                              | See "AI coding assistants" below                                                                                 |
 
 `AI_MODE=fixtures` replays recorded transcripts and shows a persistent **"Simulated AI"** badge; it is used by the
 test server and is the honest way to demo voice without keys. Gemini's free tier may use submitted data to improve
@@ -84,9 +85,10 @@ always confirm it."
 | Without AI…                 | Effect                                                                                                                                                                                 |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Voice onboarding (AI-01/02) | A worker answers every step by tapping tiles instead of speaking. Onboarding still completes (tested with `AI_MODE=off`), but it is slower and less natural for a low-literacy worker. |
+| Request drafting (AI-03)    | The "Help me choose" button is hidden. The customer taps the trade and a When chip, which is the primary path anyway. Results, ranking and booking do not use AI.                      |
 | Spoken guide                | Instructions stay available as text in both languages and, where the browser has a voice, as speech.                                                                                   |
 
-_More rows are added as later phases add AI features (request drafting, voice notes, reviews)._
+_More rows are added as later phases add AI features (voice notes, offers, reviews)._
 
 ## Third-party services (non-AI)
 
@@ -96,8 +98,11 @@ _More rows are added as later phases add AI features (request drafting, voice no
 - **Gmail SMTP** (sign-in code emails via Nodemailer, a dedicated project Gmail + App Password). Needs `GMAIL_USER` /
   `GMAIL_APP_PASSWORD`. Hidden when the values are missing or `AUTH_MODE=mock`.
 
-_TODO: OpenStreetMap tiles (Phase 3), JazzCash sandbox and
-Easypaisa (Phase 7), Neon, Vercel._
+- **OpenStreetMap tiles via Leaflet** (results map; no API key). Tiles are fetched by the customer's browser from
+  `tile.openstreetmap.org` under the OSM tile usage policy, with the required attribution shown on the map. Only
+  approximate (about 500 m) worker pins and the customer's own search circle are drawn. If tiles fail, the list still works.
+
+_TODO: JazzCash sandbox and Easypaisa (Phase 7), Neon, Vercel._
 
 ## AI coding assistants
 
@@ -134,6 +139,11 @@ of the first commit._ Open-source libraries are credited below.
   untested until API keys are added. Urdu speech-recognition accuracy is not measured yet.
 - Spoken guidance falls back to the browser voice; many desktop browsers have no Urdu voice, so the Urdu "Listen" button
   can be hidden there (the Urdu text is always shown). Pre-generated audio files will fix this.
+- Request drafting works for typed text only; voice and photo request drafting are not built, and the draft is not shown
+  in a desktop side panel yet.
+- "Message" on a worker profile is disabled until chat arrives (Phase 4). Worker photos are not shown to customers yet.
+- Seeded workers have no reviews until Phase 6, so ratings show "No reviews yet" everywhere.
+- The Figma comparison for the request, results and profile screens (rows 07–09) has not been done.
 - Phases 4–9 are not built yet.
 - `btree_gist` (needed for the no-double-booking constraint) is verified on Docker Postgres; not yet verified on Neon.
 - Area coordinates are approximate.

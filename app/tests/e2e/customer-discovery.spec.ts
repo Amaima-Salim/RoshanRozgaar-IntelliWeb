@@ -144,6 +144,34 @@ test.describe("request with AI_MODE=off", () => {
   });
 });
 
+test("same place and experience, different price: both shown, price reasons differ (edge case 6)", async ({
+  page,
+  baseURL,
+}) => {
+  await setLanguage(page, baseURL!, "en");
+  await startRequest(page, "plumber", nextWeekday(3, "10:00"));
+  const text = await page.getByTestId("results-list").innerText();
+  expect(text).toContain("Zahid Hussain");
+  expect(text).toContain("Tahir Abbas");
+  expect(text).toContain("Usual price Rs 1,000");
+  expect(text).toContain("Usual price Rs 1,600");
+});
+
+test("a foreign or unknown photo id cannot be attached to a request", async ({ page }) => {
+  await signInWithDemoAccount(page, "customer", CUSTOMER_1);
+  await expect(page).toHaveURL(/\/c\/request\/new$/);
+  const res = await page.request.post("/api/requests", {
+    data: {
+      trade: "plumber",
+      source: "tap",
+      areaSlug: "g-9",
+      urgency: "now",
+      photoMediaId: "00000000-0000-4000-8000-000000000000",
+    },
+  });
+  expect(res.status()).toBe(400);
+});
+
 test("request endpoints refuse signed-out callers", async ({ request }) => {
   for (const [method, path] of [
     ["post", "/api/requests"],

@@ -129,7 +129,7 @@ export function RequestForm({
           summaryLang: details.trim() ? lang : undefined,
           areaSlug,
           ...(point ?? {}),
-          urgency: when === "now" ? "now" : when === "pick" ? "scheduled" : "today",
+          urgency: when === "now" ? "now" : "scheduled",
           ...(startAt && when !== "now" ? { startAt: startAt.toISOString() } : {}),
           ...(budgetPkr > 0 ? { budgetPkr } : {}),
         }),
