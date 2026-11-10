@@ -5,6 +5,7 @@ import { HttpError } from "@/lib/api/respond";
 import { db } from "@/lib/db/client";
 import { conversations, jobEvents, jobs, requests } from "@/lib/db/schema";
 import { transition, type JobAction } from "@/lib/domain/job-machine";
+import { recomputeReputation } from "@/lib/trust/reputation";
 
 export const TRANSITIONS = ["start", "request-complete", "confirm-complete", "cancel"] as const;
 export type TransitionName = (typeof TRANSITIONS)[number];
@@ -96,6 +97,9 @@ export async function transitionJob(
       actorId,
       reason: body.action === "cancel" ? (body.reason ?? null) : body.action,
     });
+
+    // A completed job counts toward jobs completed and repeat customers even if never reviewed.
+    if (body.action === "confirm-complete") await recomputeReputation(tx, job.workerId);
 
     if (body.action === "cancel") {
       // The window is freed by the status change itself (the exclusion constraint only covers

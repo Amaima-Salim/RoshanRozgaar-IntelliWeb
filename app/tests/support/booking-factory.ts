@@ -112,3 +112,33 @@ export async function addSiblingOffer(requestId: string, customerId: string, wor
     .returning();
   return { conversation: conversation!, offer: offer! };
 }
+
+/** A job that is already completed (request → conversation → accepted offer → completed job). */
+export async function makeCompletedJob(opts: {
+  customerId: string;
+  workerId: string;
+  pricePkr?: number;
+  startAt?: Date;
+}) {
+  const { jobs } = await import("@/lib/db/schema");
+  const startAt =
+    opts.startAt ?? addMin(MONDAY_10, -60 * 24 * 7 * Math.floor(Math.random() * 400 + 1));
+  const { request, conversation, offer } = await makeOffer({ ...opts, startAt });
+  await db.update(offers).set({ status: "accepted" }).where(eq(offers.id, offer.id));
+  const [job] = await db
+    .insert(jobs)
+    .values({
+      requestId: request.id,
+      conversationId: conversation.id,
+      offerId: offer.id,
+      customerId: opts.customerId,
+      workerId: opts.workerId,
+      pricePkr: opts.pricePkr ?? 1500,
+      startAt,
+      endAt: addMin(startAt, 60),
+      status: "completed",
+      completedAt: addMin(startAt, 70),
+    })
+    .returning();
+  return job!;
+}
