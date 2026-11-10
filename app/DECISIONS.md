@@ -213,7 +213,11 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
 - **`POST /api/ai/speak`:** signed-in users only; POST so text never lands in a URL; text ≤ 600 chars; mode check →
   fixtures/no key (503, client falls back) → AI rate limits. 64-entry in-memory cache server side, object-URL
   cache client side. `AI_MODE=fixtures` never fakes audio.
-- **Pre-generated prompts:** `npm run audio:generate` writes `/public/audio/{ur,en}/<id>.{wav,mp3}` for every guide
+- **Pre-generated prompts (done, 2026-11-10):** all 25 guide/feedback prompts in Urdu and English were generated with the
+  free open-source `edge-tts` CLI (`npm run audio:generate -- --provider=edge`), voices `ur-PK-UzmaNeural` and
+  `en-US-AvaNeural`, and committed under `/public/audio`. `edge-tts` calls Microsoft Edge's unofficial read-aloud
+  service: fine for demo prompts, but not a supported API, so use Azure's official tier for anything live. To change a
+  prompt's text, delete its file and run the command again. `npm run audio:generate` writes `/public/audio/{ur,en}/<id>.{wav,mp3}` for every guide
   id and fixed feedback message, then regenerates `audio-manifest.ts` from the files that exist. Nothing is
   committed until a real key has produced real audio.
 - **Speech to text:** still Groq Whisper (`language=ur`). It is now shared by `useSpeechToText` and opened to customers for

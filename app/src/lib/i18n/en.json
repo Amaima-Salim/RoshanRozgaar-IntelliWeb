@@ -322,7 +322,7 @@
     },
     "consent": {
       "title": "Before you use the microphone",
-      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it. Spoken instructions are read aloud by an Urdu voice model (Google Gemini or Microsoft Azure) from the app's own text and your answers.",
+      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it. Spoken instructions are played from recordings made with an Urdu voice, or read aloud by an Urdu voice service; only the app's own text and your confirmed answers are ever sent to it.",
       "accept": "OK, I understand",
       "decline": "No, I will tap instead"
     },
@@ -609,6 +609,13 @@
     "pickLabel": "Date and time",
     "whereQuestion": "Where?",
     "whereNote": "Your exact address is shared only after you book.",
+    "photoLabel": "Photo of the problem (optional)",
+    "photoHint": "Show the machine or the fault so the worker understands before coming.",
+    "photoChoose": "Take or choose a photo",
+    "photoChange": "Change photo",
+    "photoRemove": "Remove photo",
+    "photoError": "The photo did not upload. You can continue without it.",
+    "photoAlt": "Photo of the problem",
     "useLocation": "Use my location",
     "locationDenied": "Location is off. Please tap your area.",
     "locationFar": "You seem to be outside our service area. Please tap your area.",

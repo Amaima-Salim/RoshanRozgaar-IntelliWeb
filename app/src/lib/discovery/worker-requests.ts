@@ -10,6 +10,7 @@ export type WorkerRequestRow = {
   id: string;
   trade: (typeof requests.$inferSelect)["trade"];
   summaryText: string | null;
+  photoMediaId: string | null;
   areaNameEn: string;
   areaNameUr: string;
   startAt: Date;
@@ -41,6 +42,7 @@ export async function requestsForWorker(
       id: requests.id,
       trade: requests.trade,
       summaryText: requests.summaryText,
+      photoMediaId: requests.photoMediaId,
       lat: requests.lat,
       lng: requests.lng,
       startAt: requests.startAt,
@@ -88,6 +90,7 @@ export async function requestsForWorker(
       id: r.id,
       trade: r.trade,
       summaryText: r.summaryText,
+      photoMediaId: r.photoMediaId,
       areaNameEn: r.areaNameEn,
       areaNameUr: r.areaNameUr,
       startAt: r.startAt,

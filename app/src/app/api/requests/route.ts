@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { HttpError, ok, parseJson, route } from "@/lib/api/respond";
 import { requireRole } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
-import { areas, requests } from "@/lib/db/schema";
+import { areas, media, requests } from "@/lib/db/schema";
 import { nearestArea } from "@/lib/domain/geo";
 
 const bodySchema = z.strictObject({
@@ -11,7 +11,8 @@ const bodySchema = z.strictObject({
   summaryText: z.string().trim().max(500).optional(),
   summaryLang: z.enum(["ur", "en"]).optional(),
   source: z.enum(["voice", "text", "tap", "photo"]),
-  // No photo field yet: a media id from the client would need an ownership check (photo drafting is a later step).
+  /** Id from POST /api/requests/photo; ownership is checked below. */
+  photoMediaId: z.uuid().optional(),
   areaSlug: z.string().regex(/^[a-z0-9-]{1,40}$/),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
@@ -39,6 +40,16 @@ export const POST = route("requests.create", async (request) => {
   if (!nearestArea(point, all))
     throw new HttpError("VALIDATION", { reason: "outside_service_area" });
 
+  if (body.photoMediaId) {
+    const [m] = await db
+      .select({ id: media.id })
+      .from(media)
+      .where(
+        and(eq(media.id, body.photoMediaId), eq(media.ownerId, user.id), eq(media.kind, "image")),
+      );
+    if (!m) throw new HttpError("VALIDATION", { reason: "photo" });
+  }
+
   const now = new Date();
   let startAt: Date;
   if (body.urgency === "now") startAt = now;
@@ -59,6 +70,7 @@ export const POST = route("requests.create", async (request) => {
       summaryText: body.summaryText || null,
       summaryLang: body.summaryText ? (body.summaryLang ?? null) : null,
       source: body.source,
+      photoMediaId: body.photoMediaId ?? null,
       lat: point.lat,
       lng: point.lng,
       areaSlug: area.slug,

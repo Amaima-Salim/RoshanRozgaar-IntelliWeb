@@ -161,6 +161,15 @@ export default async function WorkerHomePage() {
                   <p className="font-semibold">
                     {t(`trades.${r.trade}`)} · {lang === "ur" ? r.areaNameUr : r.areaNameEn}
                   </p>
+                  {r.photoMediaId ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- private, auth-gated media
+                    <img
+                      src={`/api/media/${r.photoMediaId}`}
+                      alt={t("request.photoAlt")}
+                      loading="lazy"
+                      className="max-h-48 w-full rounded-lg object-contain"
+                    />
+                  ) : null}
                   {r.summaryText ? (
                     <p dir="auto" className="text-text-muted">
                       {r.summaryText}

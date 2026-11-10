@@ -1,8 +1,8 @@
 "use client";
 
-import { LocateFixed } from "lucide-react";
+import { Camera, LocateFixed, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { GuideButtons } from "@/components/guide/GuideButtons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { SpokenMessage } from "@/components/voice/SpokenMessage";
 import { useSpeechToText } from "@/components/voice/useSpeechToText";
 import { VoiceConsent } from "@/components/worker/onboarding/VoiceConsent";
 import { TRADE_ICONS } from "@/components/worker/trade-icons";
+import { compressImage } from "@/lib/media/compress-client";
 import { nearestArea } from "@/lib/domain/geo";
 import { parseKarachiLocal, startForChip } from "@/lib/domain/time";
 import { TRADES, type Trade } from "@/lib/domain/worker-profile";
@@ -48,6 +49,34 @@ export function RequestForm({
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Optional photo of the problem: uploaded at once, attached to the request on submit.
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoId, setPhotoId] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoFailed(false);
+    try {
+      const blob = await compressImage(file);
+      const form = new FormData();
+      form.set("file", blob, "problem.jpg");
+      const res = await fetch("/api/requests/photo", { method: "POST", body: form });
+      const json = (await res.json()) as { ok: boolean; data?: { mediaId: string } };
+      if (!res.ok || !json.ok || !json.data) throw new Error("upload");
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhotoPreview(URL.createObjectURL(blob));
+      setPhotoId(json.data.mediaId);
+    } catch {
+      setPhotoFailed(true);
+    } finally {
+      setPhotoBusy(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
 
   const useLocation = () => {
     setNote(null);
@@ -159,7 +188,8 @@ export function RequestForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           trade,
-          source: spoken ? "voice" : details.trim() ? "text" : "tap",
+          source: photoId ? "photo" : spoken ? "voice" : details.trim() ? "text" : "tap",
+          ...(photoId ? { photoMediaId: photoId } : {}),
           summaryText: details.trim() || undefined,
           summaryLang: details.trim() ? lang : undefined,
           areaSlug,
@@ -251,6 +281,61 @@ export function RequestForm({
             data-testid="request-details"
           />
         </label>
+        <div
+          className="mt-2 flex flex-col gap-3 rounded-xl bg-canvas p-4"
+          data-testid="request-photo"
+        >
+          <p className="font-semibold">{t("request.photoLabel")}</p>
+          <p className="text-sm text-text-muted">{t("request.photoHint")}</p>
+          {photoId && photoPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element -- local blob preview
+            <img
+              src={photoPreview}
+              alt={t("request.photoAlt")}
+              className="max-h-64 w-full rounded-lg object-contain"
+              data-testid="request-photo-preview"
+            />
+          ) : null}
+          <input
+            ref={photoInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => void pickPhoto(e.target.files?.[0])}
+            data-testid="request-photo-input"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              loading={photoBusy}
+              icon={<Camera aria-hidden />}
+              onClick={() => photoInput.current?.click()}
+              {...bi(photoId ? "request.photoChange" : "request.photoChoose")}
+            />
+            {photoId ? (
+              <button
+                type="button"
+                className="inline-flex min-h-touch items-center gap-2 font-medium text-danger underline"
+                onClick={() => {
+                  if (photoPreview) URL.revokeObjectURL(photoPreview);
+                  setPhotoPreview(null);
+                  setPhotoId(null);
+                }}
+              >
+                <Trash2 aria-hidden className="size-5" />
+                {t("request.photoRemove")}
+              </button>
+            ) : null}
+          </div>
+          {photoFailed ? (
+            <p role="alert" className="font-semibold text-danger" data-testid="request-photo-error">
+              {t("request.photoError")}
+            </p>
+          ) : null}
+        </div>
         {aiMode !== "off" && details.trim().length > 2 ? (
           <Button
             variant="outline"

@@ -42,12 +42,23 @@ export default async function RequestResultsPage({
         .from(users)
         .where(inArray(users.id, ids))
     : [];
+  const { t } = await getT();
   return (
-    <ResultsView
-      requestId={req.id}
-      trade={req.trade}
-      result={result}
-      nameUr={Object.fromEntries(names.map((n) => [n.id, n.nameUr]))}
-    />
+    <>
+      {req.photoMediaId ? (
+        // eslint-disable-next-line @next/next/no-img-element -- private, auth-gated media
+        <img
+          src={`/api/media/${req.photoMediaId}`}
+          alt={t("request.photoAlt")}
+          className="mx-auto mb-4 max-h-64 w-full max-w-3xl rounded-lg object-contain"
+        />
+      ) : null}
+      <ResultsView
+        requestId={req.id}
+        trade={req.trade}
+        result={result}
+        nameUr={Object.fromEntries(names.map((n) => [n.id, n.nameUr]))}
+      />
+    </>
   );
 }
