@@ -5,17 +5,20 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
 
 ## Confirmed by the team before Phase 0 (2026-11-10)
 
-| ID   | Decision                                                                         | Status              | Notes                                                                                                                    |
-| ---- | -------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| D-01 | Next.js (App Router) + TypeScript strict + Tailwind CSS                          | Accepted            | Pinned: Next 16.4.6, React 19.3.1, Tailwind 4.3.5                                                                        |
-| D-02 | Neon Postgres (pooled) + Vercel; Docker Postgres locally                         | Accepted            | Local: `postgres:17-alpine` on port 5433. `btree_gist` verified on Docker; **not yet verified on Neon** (no project yet) |
-| D-03 | Drizzle ORM + hand-written SQL for constraints                                   | Accepted            | `src/lib/db/migrations/0001_constraints.sql`                                                                             |
-| D-04 | Realtime by polling (4 s) with row versions                                      | Accepted            | Used from Phase 4                                                                                                        |
-| D-05 | Islamabad + Rawalpindi; electrician, plumber, AC technician, carpenter, mechanic | Accepted (defaults) | 8 seeded areas, approximate centroids                                                                                    |
-| D-06 | Urdu (RTL, default) + English toggle (LTR); Roman Urdu input                     | Accepted (defaults) |                                                                                                                          |
-| D-14 | Plan files not in the repo                                                       | Accepted            | Team chose "keep out"; plan files live in the parent folder                                                              |
-| D-22 | Pre-made Figma designs allowed                                                   | Accepted            | Team: Figma OK; credited in README                                                                                       |
-| D-29 | Web-first responsive; PWA is a Phase 8 enhancement                               | Accepted            | Breakpoints 360 / 768 / 1280                                                                                             |
+| ID   | Decision                                                                                                                                                                   | Status                               | Notes                                                                                                                    |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| D-01 | Next.js (App Router) + TypeScript strict + Tailwind CSS                                                                                                                    | Accepted                             | Pinned: Next 16.4.6, React 19.3.1, Tailwind 4.3.5                                                                        |
+| D-02 | Neon Postgres (pooled) + Vercel; Docker Postgres locally                                                                                                                   | Accepted                             | Local: `postgres:17-alpine` on port 5433. `btree_gist` verified on Docker; **not yet verified on Neon** (no project yet) |
+| D-03 | Drizzle ORM + hand-written SQL for constraints                                                                                                                             | Accepted                             | `src/lib/db/migrations/0001_constraints.sql`                                                                             |
+| D-04 | Realtime by polling (4 s) with row versions                                                                                                                                | Accepted                             | Used from Phase 4                                                                                                        |
+| D-05 | Islamabad + Rawalpindi; electrician, plumber, AC technician, carpenter, mechanic                                                                                           | Accepted (defaults)                  | 8 seeded areas, approximate centroids                                                                                    |
+| D-06 | Urdu (RTL, default) + English toggle (LTR); Roman Urdu input                                                                                                               | Accepted (defaults)                  |                                                                                                                          |
+| D-14 | Plan files not in the repo                                                                                                                                                 | Accepted                             | Team chose "keep out"; plan files live in the parent folder                                                              |
+| D-22 | Pre-made Figma designs allowed                                                                                                                                             | Accepted                             | Team: Figma OK; credited in README                                                                                       |
+| D-24 | Sign-in per role: worker = Google or demo phone (email code under "More options"); customer = Google or email code (demo phone under "More options"); demo accounts always | Accepted (Phase 1 start, 2026-11-10) | Team said "start phase 1"; treated as confirmation of the proposal                                                       |
+| D-25 | OTP email via Gmail SMTP (Nodemailer + App Password, dedicated project Gmail, ~500/day)                                                                                    | Accepted (Phase 1 start, 2026-11-10) | Same                                                                                                                     |
+| D-28 | Google client + Gmail App Password set up before the hackathon start                                                                                                       | **Unconfirmed with organizers**      | Configuration only, no project code; the values were **not yet in `.env.local`** at Phase 1 start                        |
+| D-29 | Web-first responsive; PWA is a Phase 8 enhancement                                                                                                                         | Accepted                             | Breakpoints 360 / 768 / 1280                                                                                             |
 
 ## Implementation decisions
 
@@ -132,11 +135,29 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
   machines). Dev mode recompiled and hot-reloaded mid-test, which made the first test flaky. The dev-only component
   gallery is reachable in that build only because the E2E server sets `RR_E2E=1`; it 404s in any normal production run.
 
+### D-47 — Email OTP sends through our own endpoint; onboarding stubs
+
+- **Decision:** `POST /api/auth/email-code/send` awaits SMTP and returns `502 EMAIL_SEND_FAILED` on any failure.
+  Better Auth's email-OTP plugin still stores/verifies codes (hashed, 10 min, 5 attempts) and signs the user in
+  (`/sign-in/email-otp`). Every other `/email-otp/*` route returns 404.
+- **Why:** the plugin's own send endpoint runs the mailer as a background task and swallows its errors, so it answers
+  `success: true` for an unsent email (found by a failing test). "Code sent" must never be shown for an unsent email.
+- **Alternatives:** configure a background-task handler (still fire-and-forget); fork the plugin.
+- **Also:** a failed send deletes the stored code so the 60 s resend cooldown doesn't block a retry. Same-email linking
+  relies on the plugin's lookup by email plus Google as a trusted provider (Google only links on a verified email);
+  phone-only users have `@phone.invalid` emails, which are never mailed or matched.
+- **Stubs:** `/w/onboarding` and `/c/onboarding` are `PhasePlaceholder` pages (Phase 2+ builds them); a new user's
+  role choice now routes there, while existing users still land on `homeFor(role)`.
+- **E2E stub:** with `RR_E2E=1` no mail is sent and the code is fixed (`424242`); the flag is already refused on
+  deployments (D-42).
+- **Demo phone implementation:** unchanged from D-31 (custom Better Auth plugin endpoints).
+
 ## Derived UI states
 
 States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as they are built.
 
 - Login: wrong-code / expired / locked-out / resend-throttle error text (derived; `docs/05` §3 rules).
 - Login: loading state on "Get code" / "Sign in" (Button `loading` keeps its width).
+- Login: email entry, 6-box code entry with expiry and resend timer, "email could not be sent" card, Google failure line.
 - Landing: role chooser for a signed-in user with no role yet (saving / error text).
 - All Phase 0 screens are derived until compared against Figma (D-40).

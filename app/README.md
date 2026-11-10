@@ -69,7 +69,13 @@ _TODO (from docs/04 §9 once the AI features exist)._
 
 ## Third-party services (non-AI)
 
-None yet. _TODO: Google sign-in (Phase 1), Gmail SMTP (Phase 1), OpenStreetMap tiles (Phase 3), JazzCash sandbox and
+- **Google OAuth** (sign-in; scopes `openid email profile` only, no Gmail API access). Needs `GOOGLE_CLIENT_ID` /
+  `GOOGLE_CLIENT_SECRET`; redirect URI `<APP_URL>/api/auth/callback/google`. Hidden when the values are missing or
+  `AUTH_MODE=mock`.
+- **Gmail SMTP** (sign-in code emails via Nodemailer, a dedicated project Gmail + App Password). Needs `GMAIL_USER` /
+  `GMAIL_APP_PASSWORD`. Hidden when the values are missing or `AUTH_MODE=mock`.
+
+_TODO: OpenStreetMap tiles (Phase 3), JazzCash sandbox and
 Easypaisa (Phase 7), Neon, Vercel._
 
 ## AI coding assistants
@@ -90,6 +96,8 @@ All code is reviewed and run by the team. _TODO: expand with specifics per phase
 | Workers (24), customers (3), demo worker         | **Fictional, seeded** (`is_seeded = true`); names invented, phones use the fake `0300-0000XXX` pattern, emails use `@example.com` | "Demo data" tag on seeded content                     |
 | Area locations (8 areas in Islamabad/Rawalpindi) | **Approximate** centroids, written from general map knowledge, not surveyed                                                       | —                                                     |
 | Demo phone login + one-tap demo accounts         | **Mock**: a fixed code, no SMS is sent                                                                                            | "Demo login — no real SMS is sent" banner on `/login` |
+| Email sign-in code (E2E server only)             | **Stubbed**: the local test server (`RR_E2E=1`, refused on any deployment) emails nothing and always issues `424242`              | Never reachable in a normal run                       |
+| Email sign-in code (development, no Gmail)       | The code is printed to the server console instead of emailed                                                                      | "Dev mode — the code is in the server log"            |
 | Sign-in                                          | Sign-in is **not identity verification**; there is no "verified" badge anywhere                                                   | —                                                     |
 | Payments                                         | _Not built yet (Phase 7). When built: sandbox/demo only, no real money; refunds and payouts not implemented._                     | "Test mode" banner                                    |
 | Figma designs                                    | Pre-made designs, use allowed per D-22. _TODO: who made them, when, and whether AI-assisted._                                     | —                                                     |
@@ -104,6 +112,10 @@ of the first commit._ Open-source libraries are credited below.
 - Phase 0 only: none of the five outcomes is implemented yet.
 - `btree_gist` (needed for the no-double-booking constraint) is verified on Docker Postgres; not yet verified on Neon.
 - Area coordinates are approximate.
+- Email codes are sent from a personal Gmail account, which allows about **500 emails per rolling 24 hours**. When the
+  cap or SMTP fails, the app says no code was sent and offers Google or the demo phone login.
+- Google sign-in: the consent screen must be set to "In production" before the demo (in "Testing" only listed test
+  users can sign in). _TODO: manual Google test on localhost and on the deployed URL (result and date)._
 - _TODO: Urdu STT accuracy (measured), free-tier limits, polling not push, single city, offline is read-only._
 
 ## Architecture notes and trade-offs
