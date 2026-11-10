@@ -5,11 +5,11 @@
  * after the commit, never inside it (`refreshTrustSummary`).
  */
 import "server-only";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { phraseTrustSummary } from "@/lib/ai/trust";
 import { type Executor } from "./recompute";
 import { db } from "@/lib/db/client";
-import { jobs, reviews, workerReputation } from "@/lib/db/schema";
+import { reviews, workerReputation } from "@/lib/db/schema";
 import {
   RECENT_REVIEWS_SHOWN,
   SUMMARY_COMMENTS_MAX,

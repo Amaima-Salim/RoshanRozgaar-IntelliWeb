@@ -14,7 +14,8 @@ import {
 } from "@/lib/verification/cnic";
 import { DEMO_FIXTURE_CITIZEN } from "@/lib/verification/nadra-demo";
 import { AiUnavailableError } from "./errors";
-import { geminiVisionJson, type ImagePart } from "./providers/vision";
+import type { ImagePart } from "./providers/vision";
+import { visionJson } from "./providers/json";
 
 export type OcrFn = (images: ImagePart[]) => Promise<unknown>;
 
@@ -55,13 +56,7 @@ export async function ocrCnic(images: ImagePart[]): Promise<OcrOutcome> {
     let raw: unknown;
     if (override) raw = await override(images);
     else {
-      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
-      raw = await geminiVisionJson(OCR_SYSTEM, OCR_USER, images, {
-        apiKey: ai.geminiApiKey,
-        model: ai.geminiModel,
-        // Vision calls are slower than text ones.
-        timeoutMs: Math.max(ai.timeoutMs, 20_000),
-      });
+      raw = await visionJson(OCR_SYSTEM, OCR_USER, images);
     }
     const draft = sanitizeCnicDraft(raw);
     return { draft: draft ?? emptyCnicDraft(), simulated: false };

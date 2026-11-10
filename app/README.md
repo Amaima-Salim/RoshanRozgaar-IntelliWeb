@@ -60,37 +60,53 @@ port 3200 (set `E2E_PORT` to change it).
 
 ## AI services and tools used
 
-`AI_MODE=live|fixtures|off` (default `off`). Every AI call has a timeout (`AI_TIMEOUT_MS`), a Zod schema and a
-non-AI fallback; AI output is a draft the person confirms and never decides price, booking, payment or trust.
+`AI_MODE=live|fixtures|off` (default `off`). Set `AI_MODE=live` and `GROQ_API_KEY` to enable
+live speech and understanding. Text and image tasks default to Groq; no Gemini key is required.
+Provider failures, invalid output and quota limits fall back to manual input or deterministic summaries.
+AI proposes drafts; people confirm them. AI never decides a price, booking, payment or trust score.
 
-| Task                                          | Service                                                                                                                                                                                                                                                                                                                                                                                   | Used for                                                                                                                                                                                            | Free tier | Fallback                                                                                                      | Data sent                                                                                                                                         | Status                                                                                                                                                                                      |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Speech to text (AI-01)                        | Groq Whisper (`whisper-large-v3-turbo`, `language=ur`)                                                                                                                                                                                                                                                                                                                                    | A worker's spoken onboarding answer; a customer's spoken request (AI-03 voice)                                                                                                                      | Yes       | Browser Web Speech (`ur-PK`, Chromium) → tap/typed path                                                       | The audio clip (≤ 20 s), nothing else                                                                                                             | **Not yet run against the live API** (no key at this point); code paths covered by tests with injected providers                                                                            |
-| Profile extraction (AI-02)                    | Rule-based Urdu/Roman Urdu parser first; Google Gemini (JSON mode) only when the rules find nothing                                                                                                                                                                                                                                                                                       | Turns the transcript of ONE step into that step's field                                                                                                                                             | Yes       | Empty draft → the tap tiles                                                                                   | The transcript text and the allowed area names; never names, phones, emails or addresses                                                          | **Not yet run against the live API**; the rule parser is fully unit-tested                                                                                                                  |
-| Request drafting (AI-03)                      | Rule-based keyword matcher first (English, Roman Urdu, Urdu script); Google Gemini (JSON mode) only when the rules find no trade                                                                                                                                                                                                                                                          | Proposes the trade and a rough time from a typed or spoken description                                                                                                                              | Yes       | Trade tiles and When chips                                                                                    | The description text only (no name, phone or address)                                                                                             | Typed and spoken. Not yet run against the live API; photo request drafting is not built                                                                                                     |
-| Voice note transcript and translation (AI-04) | Groq Whisper for the transcript; Google Gemini (JSON mode) for the translation into the other person's language                                                                                                                                                                                                                                                                           | Each voice note in chat                                                                                                                                                                             | Yes       | Audio-only note, no label                                                                                     | The audio clip (≤ 60 s) and its transcript text; never names, phones or addresses                                                                 | Labelled "AI — please check" in the UI (and "Simulated AI" in fixtures mode). **Not yet run against the live API**                                                                          |
-| Offer amount draft (AI-05)                    | Rules only (digits, Roman Urdu and Urdu number words); no model                                                                                                                                                                                                                                                                                                                           | Pre-selects an amount from what was said in a chat message                                                                                                                                          | n/a       | Price chips and a typed amount                                                                                | Nothing leaves the server                                                                                                                         | A draft the sender must review and press Send on; AI never sends an offer or decides a price                                                                                                |
-| Text to speech / spoken prompts (D-50)        | Prompts are **pre-generated** with the open-source `edge-tts` tool (Microsoft Edge read-aloud voice `ur-PK-UzmaNeural`, unofficial, demo use) and shipped in `/public/audio`; live text uses Microsoft Azure Speech neural voices (`ur-PK-UzmaNeural` / `ur-PK-AsadNeural`) by default; Google Gemini TTS (`gemini-3.8-flash-tts`, Urdu not officially listed) with `TTS_PROVIDER=gemini` | Speaks guide prompts, voice feedback ("we did not understand…"), the worker's read-back and the request draft in Urdu and English. Fixed prompts can be pre-generated with `npm run audio:generate` | Yes       | Pre-generated file → server voice model → browser `speechSynthesis` → both texts shown in an expandable panel | App text, the worker's read-back (trade, years, service areas, rate, hours) and the proposed trade/time; never names, phones, emails or addresses | **Not yet run against the live API** (no key at this point); the 50 pre-generated prompt files are real audio, but the live `/api/ai/speak` route is covered only by tests with mocked HTTP |
-| AI coding assistants                          | Claude (Anthropic), via Claude Code                                                                                                                                                                                                                                                                                                                                                       | Wrote and reviewed code in this repo                                                                                                                                                                | n/a       | n/a                                                                                                           | Source code                                                                                                                                       | See "AI coding assistants" below                                                                                                                                                            |
+| Task                                               | Default provider                                                          | Fallback                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Onboarding, request and chat speech recognition    | Groq Whisper `whisper-large-v3-turbo`; automatically detects Urdu/English | Browser recognition where available, then taps/text; chat retains audio |
+| Profile extraction and request drafting            | Local rules, then Groq `openai/gpt-oss-20b`                               | Tap/typed fields                                                        |
+| Chat translation                                   | Groq `openai/gpt-oss-20b`                                                 | Original transcript/audio                                               |
+| Review drafting and bilingual reputation summaries | Groq `openai/gpt-oss-20b`; summaries validated against stored statistics  | Original review and deterministic summary                               |
+| CNIC OCR                                           | Groq `qwen/qwen3.8-27b` vision; extracted fields are editable drafts      | Manual entry; NADRA check remains a fictional demo registry             |
+| Offer amount drafting                              | Local number parser; no external model                                    | Price chips and typed amount                                            |
+| Spoken instructions                                | Prerecorded app audio, optional Azure/Gemini TTS, then browser speech     | Visible bilingual text                                                  |
 
-`AI_MODE=fixtures` replays recorded transcripts and shows a persistent **"Simulated AI"** badge; it is used by the
-test server and is the honest way to demo voice without keys. Gemini's free tier may use submitted data to improve
-Google's products, so the demo uses fictional data and team voices only.
+`GROQ_MODEL` and `GROQ_VISION_MODEL` override the default models. `AI_TEXT_PROVIDER=gemini` and/or
+`AI_VISION_PROVIDER=gemini`, with `GEMINI_API_KEY`, explicitly select the previous Gemini integration.
+There is no silent switch to a different provider. `TTS_PROVIDER=azure|gemini` is independent;
+Groq does not provide Urdu speech generation here. The updated microphone consent text uses live/browser
+speech instead of the older recording, which names the previous understanding provider.
 
-**Microphone consent** (shown once per session before the first recording): "If you speak, your voice is recorded for
-a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are
-never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you
-always confirm it."
+Groq JSON object mode is validated again with each task's Zod schema. Calls have bounded output,
+timeouts and no automatic retries. Images are sent inline from the server; no public image URL is created.
+Provider documentation: [text/JSON](https://console.groq.com/docs/structured-outputs),
+[speech recognition](https://console.groq.com/docs/speech-to-text),
+[vision](https://console.groq.com/docs/vision).
 
-## "What stops working if AI is removed?"
+**Data:** speech clips, their transcript text, request descriptions and review text are sent only for their task.
+Account names, phones, emails and addresses are not added to language-model prompts, but spoken/typed
+content can itself contain personal details. CNIC OCR necessarily sends the selected card images and their
+printed personal details to the configured vision provider. Use fictional cards and team voices for demos.
 
-| Without AI…                 | Effect                                                                                                                                                                                 |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Voice onboarding (AI-01/02) | A worker answers every step by tapping tiles instead of speaking. Onboarding still completes (tested with `AI_MODE=off`), but it is slower and less natural for a low-literacy worker. |
-| Request drafting (AI-03)    | Rule-based keyword matcher first (English, Roman Urdu, Urdu script); Google Gemini (JSON mode) only when the rules find no trade                                                       | Proposes the trade and a rough time from a typed or spoken description | Yes | Trade tiles and When chips | The description text only (no name, phone or address) | Typed and spoken. Not yet run against the live API; photo request drafting is not built |
-| Spoken guide                | Instructions stay available as text in both languages and, where the browser has a voice, as speech.                                                                                   |
+`AI_MODE=fixtures` uses recorded stand-ins and displays **Simulated AI**; it makes no live provider calls.
+`AI_MODE=off` keeps the tap/text marketplace path available. Fixed recorded spoken guidance still plays.
 
-_More rows are added as later phases add AI features (voice notes, offers, reviews)._
+### Live service verification
+
+Verified locally on 2026-11-10: live request/profile drafting, Urdu→English translation, review drafting,
+grounded summary phrasing, English/Urdu prerecorded prompt transcription, and rejection of a non-CNIC icon.
+Gmail SMTP authentication passed without sending mail. An authenticated `/api/ai/draft-request` returned
+HTTP 200 with `source: "llm"` and `simulated: false`; an unauthenticated call returned HTTP 401.
+These are smoke checks, not measured accuracy on user recordings or real CNICs.
+
+Run `npm run services:check` (or append `ai` / `smtp`) after configuring `.env.local`.
+This exercises the actual app AI functions with synthetic text, a prerecorded app prompt, and a non-CNIC app icon.
+SMTP verification authenticates with Gmail without sending a message. Errors do not print keys or message bodies.
+A passing SMTP check does not prove inbox delivery; request a code through the login screen to test delivery.
 
 ## Third-party services (non-AI)
 
@@ -110,7 +126,8 @@ _TODO: JazzCash sandbox and Easypaisa (Phase 7), Neon, Vercel._
 
 This project is being built with **Claude Code (Anthropic, Claude Opus 5.5)** as an AI coding assistant.
 
-**OpenAI Codex** also assisted with the landing page PWA install button and browser installation guidance.
+**OpenAI Codex** also assisted with the landing page installation guidance, live Groq text/vision integration,
+provider and workflow tests, and live AI/Gmail service verification.
 
 - **Claude:** scaffolding, the database schema and constraints, auth wiring, UI components, tests and documentation,
   working phase by phase from the team's written plan.
@@ -135,7 +152,7 @@ All code is reviewed and run by the team. _TODO: expand with specifics per phase
 
 ### Worker identity check (CNIC OCR + demo NADRA)
 
-`/w/verify`: the worker photographs their CNIC, AI reads it (Gemini vision; a draft they correct), and the details go
+`/w/verify`: the worker photographs their CNIC, AI reads it (Groq vision by default; a draft they correct), and the details go
 through a **demo NADRA check** against a built-in fake registry. This is **not** NADRA and not real identity
 verification; results read "Matched in demo check". Demo records (CNIC / name / date of birth):
 `61101-1234567-1` Muhammad Ahmed Khan 1990-04-12 · `35202-2345678-2` Ayesha Bibi 1988-11-03 ·
@@ -149,18 +166,15 @@ of the first commit._ Open-source libraries are credited below.
 
 ## Known limitations
 
-- Voice and the Gemini/Groq calls have only run with recorded fixtures and injected test providers; the live providers are
-  untested until API keys are added. Urdu speech-recognition accuracy is not measured yet.
-- Spoken guidance falls back to the browser voice; many desktop browsers have no Urdu voice, so the Urdu "Listen" button
-  can be hidden there (the Urdu text is always shown). Pre-generated audio files will fix this.
-- Request drafting works for typed text only; voice and photo request drafting are not built, and the draft is not shown
-  in a desktop side panel yet.
+- Groq live smoke checks use synthetic inputs; they do not establish Urdu speech-recognition accuracy or translation quality for real users. Optional Gemini/Azure providers still need their own credentials and validation.
+- Fixed guidance has prerecorded audio. Dynamic spoken text and the updated microphone consent fall back to browser speech when Azure/Gemini TTS is not configured; some browsers have no Urdu voice.
+- Requests accept text, voice and photo attachments; AI drafting uses text/transcribed speech, not the attached photo.
 - Worker photos are not shown to customers yet.
-- Seeded workers have no reviews until Phase 6, so ratings show "No reviews yet" everywhere.
+- Seeded reviews and completed jobs are fictional demo data, labelled accordingly; some workers intentionally have no reviews.
 - The Figma comparison for the request, results and profile screens (rows 07–09) has not been done.
 - The Figma comparison for the booking screens (rows 11–13: accept, conflict, job pages) has not been done; they are built from the written spec and `docs/03` patterns.
-- Phases 6–9 are not built yet. Booking (Phase 5) exists as the accept screen (`/c/offer/[id]`, `/w/offer/[id]`) and job pages (`/c/job/[id]`, `/w/job/[id]`); offers are made in chat (Phase 4).
-- Phase 4 chat: the Figma comparison for the chat and offer screens (row 10) has not been done; they are built from the written spec. Voice transcripts and translations (AI-04) and offer drafts (AI-05) have not been run against the live Groq / Gemini APIs (fixtures and injected providers only); translation quality for Urdu↔English has therefore not been judged. Chat is polled every 4 s, not pushed. The offer composer offers a fixed set of start tiles and durations (1–4 h) plus a free date-time picker.
+- Reviews and reputation (Phase 6) are implemented. Payments, full offline support and final polish remain incomplete. Booking exists as the accept screen (`/c/offer/[id]`, `/w/offer/[id]`) and job pages (`/c/job/[id]`, `/w/job/[id]`); offers are made in chat (Phase 4).
+- Phase 4 chat: the Figma comparison for the chat and offer screens (row 10) has not been done; they are built from the written spec. Groq transcripts and translation have live synthetic smoke checks; Urdu↔English quality for real conversations has not been measured. Offer drafts use local rules only. Chat is polled every 4 s, not pushed. The offer composer offers a fixed set of start tiles and durations (1–4 h) plus a free date-time picker.
 - `btree_gist` (needed for the no-double-booking constraint) is verified on Docker Postgres; not yet verified on Neon.
 - Area coordinates are approximate.
 - Email codes are sent from a personal Gmail account, which allows about **500 emails per rolling 24 hours**. When the

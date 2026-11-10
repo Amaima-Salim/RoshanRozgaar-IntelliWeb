@@ -25,7 +25,8 @@ describe("seeded trust data", () => {
     } finally {
       console.log = silence;
     }
-    const all = await db.select().from(reviews);
+    // Other integration cases may already have created genuine reviews in this shared DB.
+    const all = await db.select().from(reviews).where(eq(reviews.isSeeded, true));
     expect(all).toHaveLength(45);
     expect(all.every((r) => r.isSeeded)).toBe(true);
     expect(all.some((r) => r.commentText && r.aiFlagged === false)).toBe(true);

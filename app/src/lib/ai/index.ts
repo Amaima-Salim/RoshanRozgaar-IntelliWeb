@@ -15,7 +15,7 @@ import {
   draftRequestUserPrompt,
   extractUserPrompt,
 } from "./prompts";
-import { geminiJson } from "./providers/gemini";
+import { textJson } from "./providers/json";
 import { groqTranscribe } from "./providers/groq";
 import { azureSpeak, geminiSpeak, type SpeechAudio, type SpeechLang } from "./providers/tts";
 import type { AiProviders } from "./providers/types";
@@ -51,20 +51,10 @@ function liveProviders(): AiProviders {
       });
     },
     async extractWorkerProfile({ stepId, transcript, allowedAreas }) {
-      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
-      return geminiJson(EXTRACT_SYSTEM, extractUserPrompt(stepId, transcript, allowedAreas), {
-        apiKey: ai.geminiApiKey,
-        model: ai.geminiModel,
-        timeoutMs: ai.timeoutMs,
-      });
+      return textJson(EXTRACT_SYSTEM, extractUserPrompt(stepId, transcript, allowedAreas));
     },
     async draftRequest({ text }) {
-      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
-      return geminiJson(DRAFT_REQUEST_SYSTEM, draftRequestUserPrompt(text), {
-        apiKey: ai.geminiApiKey,
-        model: ai.geminiModel,
-        timeoutMs: ai.timeoutMs,
-      });
+      return textJson(DRAFT_REQUEST_SYSTEM, draftRequestUserPrompt(text));
     },
     async speak({ text, lang }) {
       const { tts } = ai;
@@ -151,7 +141,17 @@ export async function extractWorkerProfile(input: {
   const providers = override ?? liveProviders();
   try {
     const raw = await providers.extractWorkerProfile(input);
-    const parsed = workerProfileDraftSchema.safeParse(raw);
+    // Models may omit unstated fields; defaults carry no inferred information.
+    const candidate =
+      raw && typeof raw === "object" && !Array.isArray(raw) ? { ...emptyDraft(), ...raw } : raw;
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      // A model's null for an unstated list means no selections, never inferred values.
+      const fields = candidate as Record<string, unknown>;
+      for (const key of ["areaSlugs", "weekdays", "dayParts"]) {
+        if (fields[key] === null) fields[key] = [];
+      }
+    }
+    const parsed = workerProfileDraftSchema.safeParse(candidate);
     if (!parsed.success) return { draft: emptyDraft(), source: "none", simulated };
     const allowed = new Set(input.allowedAreas.map((a) => a.slug));
     const checked = restrictToStep(input.stepId, {

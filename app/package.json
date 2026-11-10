@@ -15,7 +15,8 @@
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "db:seed": "tsx src/lib/db/seed/index.ts",
     "db:reset": "tsx src/lib/db/reset.ts",
-    "audio:generate": "tsx --conditions=react-server scripts/generate-guide-audio.ts"
+    "audio:generate": "tsx --conditions=react-server scripts/generate-guide-audio.ts",
+    "services:check": "tsx --conditions=react-server scripts/check-live-services.ts"
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",

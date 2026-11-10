@@ -19,7 +19,7 @@ import {
 } from "@/lib/domain/trust";
 import { log } from "@/lib/log";
 import { AiUnavailableError } from "./errors";
-import { geminiJson } from "./providers/gemini";
+import { textJson } from "./providers/json";
 import { groqTranscribe } from "./providers/groq";
 import { transcriptSchema, type Transcript } from "./schemas";
 
@@ -69,14 +69,6 @@ function summaryUserPrompt(stats: TrustStats, comments: string[]) {
 
 function live(): TrustAiProviders {
   const { ai } = getConfig();
-  const gemini = <T>(system: string, user: string): Promise<T> => {
-    if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
-    return geminiJson(system, user, {
-      apiKey: ai.geminiApiKey,
-      model: ai.geminiModel,
-      timeoutMs: ai.timeoutMs,
-    }) as Promise<T>;
-  };
   return {
     async transcribe(audio) {
       if (!ai.groqApiKey) throw new AiUnavailableError("no_key");
@@ -86,9 +78,9 @@ function live(): TrustAiProviders {
         timeoutMs: ai.timeoutMs,
       });
     },
-    draftReview: ({ text }) => gemini(REVIEW_SYSTEM, reviewUserPrompt(text)),
+    draftReview: ({ text }) => textJson(REVIEW_SYSTEM, reviewUserPrompt(text)),
     phraseSummary: ({ stats, comments }) =>
-      gemini(SUMMARY_SYSTEM, summaryUserPrompt(stats, comments)),
+      textJson(SUMMARY_SYSTEM, summaryUserPrompt(stats, comments)),
   };
 }
 

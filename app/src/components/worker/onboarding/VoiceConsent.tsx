@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { SpeakButton } from "@/components/ui/SpeakButton";
-import { messageAudioSrc } from "@/lib/guide";
 import { useI18n } from "@/lib/i18n/client";
 
 /** Shown once per session before the first mic use (docs/04 §6): what, who, how long. */
@@ -14,7 +13,7 @@ export function VoiceConsent({
   onAccept: () => void;
   onDecline: () => void;
 }) {
-  const { t, bi, lang } = useI18n();
+  const { t, bi } = useI18n();
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     box.current?.querySelector<HTMLElement>("[data-testid='consent-accept']")?.focus();
@@ -37,12 +36,7 @@ export function VoiceConsent({
           {t("onboarding.consent.title")}
         </h2>
         <p className="leading-relaxed">{t("onboarding.consent.body")}</p>
-        <SpeakButton
-          text={t("onboarding.consent.body")}
-          src={messageAudioSrc("onboarding.consent.body", lang)}
-          voiceModel
-          className="self-start"
-        />
+        <SpeakButton text={t("onboarding.consent.body")} voiceModel className="self-start" />
         <div className="flex flex-col gap-3 sm:flex-row-reverse">
           <Button
             size="lg"

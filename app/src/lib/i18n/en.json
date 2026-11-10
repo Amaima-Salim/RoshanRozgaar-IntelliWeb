@@ -323,7 +323,7 @@
     },
     "consent": {
       "title": "Before you use the microphone",
-      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it. Spoken instructions are played from recordings made with an Urdu voice, or read aloud by an Urdu voice service; only the app's own text and your confirmed answers are ever sent to it.",
+      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq for speech recognition. The configured AI service interprets the transcript. We do not add your account name, phone or address; avoid saying personal details in your recording. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it. Spoken instructions are played from recordings made with an Urdu voice, or read aloud by an Urdu voice service; only the app's own text and your confirmed answers are ever sent to it.",
       "accept": "OK, I understand",
       "decline": "No, I will tap instead"
     },
@@ -740,7 +740,7 @@
   },
   "verify": {
     "title": "Verify your identity",
-    "intro": "Take a clear photo of your CNIC. We read it and you check the details. Your photos stay private.",
+    "intro": "Your selected CNIC photos are sent to the configured AI service to read the card and stored privately. Check and correct the extracted details.",
     "demoNotice": "DEMO: this check uses a practice registry, not NADRA. It is not a real identity verification.",
     "front": "CNIC front",
     "back": "CNIC back (optional)",

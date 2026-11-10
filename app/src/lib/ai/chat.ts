@@ -10,7 +10,7 @@ import { getConfig } from "@/lib/config";
 import { log } from "@/lib/log";
 import { AiUnavailableError } from "./errors";
 import { numberRuns } from "./numbers";
-import { geminiJson } from "./providers/gemini";
+import { textJson } from "./providers/json";
 import { groqTranscribe } from "./providers/groq";
 import { transcriptSchema, type Transcript } from "./schemas";
 
@@ -39,12 +39,7 @@ function live(): ChatAiProviders {
       });
     },
     async translate({ text, from, to }) {
-      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
-      return geminiJson(TRANSLATE_SYSTEM, translateUserPrompt(text, from, to), {
-        apiKey: ai.geminiApiKey,
-        model: ai.geminiModel,
-        timeoutMs: ai.timeoutMs,
-      });
+      return textJson(TRANSLATE_SYSTEM, translateUserPrompt(text, from, to));
     },
   };
 }

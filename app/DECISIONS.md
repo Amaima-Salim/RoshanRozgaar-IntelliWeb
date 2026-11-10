@@ -331,3 +331,15 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
 - **Flagged-review policy (default, final policy still to be confirmed by the team):** stars and signals count, the flag
   is stored, the comment is hidden from the public list and the AI summary. Seeded reviews are counted and labelled Demo.
 - **Seed:** 45 completed jobs with reviews through the real request→job chain; edge 1 excellent, edge 5 mixed.
+
+## Live Groq and Gmail OTP (2026-11-10)
+
+The user selected Groq using the existing key and Gmail email codes using the existing Better Auth system.
+Text understanding and CNIC OCR now default to Groq; Gemini remains explicitly selectable. Whisper detects
+Urdu/English instead of forcing Urdu. JSON is schema validated; omitted/null profile lists become empty
+without inventing values. Text uses a low reasoning effort and a 2048-token response cap; vision uses
+768 output tokens to fit the configured account's quota. No automatic retries or fallback to another
+external provider. Existing tap/text and deterministic fallbacks remain. Urdu TTS uses existing recordings,
+optional Azure/Gemini or browser speech. Updated consent does not play the obsolete provider recording.
+Gmail SMTP authentication can be checked without sending mail via `npm run services:check smtp`; inbox
+delivery must be tested by requesting a code on the login screen. Real NADRA is still not connected.
