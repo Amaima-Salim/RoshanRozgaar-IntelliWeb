@@ -129,10 +129,66 @@ test.describe("request drafting (AI-03)", () => {
   });
 });
 
+test.describe("spoken request in Urdu (AI-03 voice, fixtures)", () => {
+  test("speech fills the description and proposes a trade the customer confirms", async ({
+    page,
+    baseURL,
+  }) => {
+    await setLanguage(page, baseURL!, "en");
+    await signInWithDemoAccount(page, "customer", CUSTOMER_1);
+    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    await page.locator("html[data-hydrated='true']").waitFor({ state: "attached" });
+    const voice = page.getByTestId("request-voice");
+    await voice.getByRole("button", { name: /Tap to speak/ }).click();
+    await page.getByTestId("consent-accept").click();
+    await expect(voice.getByRole("button", { name: /Listening/ })).toBeVisible();
+    await page.waitForTimeout(1500);
+    await voice.getByRole("button", { name: /Listening/ }).click();
+    await expect(page.getByTestId("request-heard")).toContainText("plumber");
+    await expect(page.getByTestId("request-details")).toHaveValue(/nalka/);
+    await expect(page.getByTestId("request-draft")).toContainText("Plumber");
+    // Still only a draft until the customer presses "Use this".
+    await expect(page.getByTestId("trade-plumber")).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId("request-draft-use").click();
+    await expect(page.getByTestId("trade-plumber")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("speech endpoints: roles keep their own purpose; no faked audio", async ({
+    page,
+    request,
+  }) => {
+    expect(
+      (await request.post("/api/ai/speak", { data: { text: "سلام", lang: "ur" } })).status(),
+    ).toBe(401);
+    await signInWithDemoAccount(page, "customer", CUSTOMER_1);
+    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    const audio = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0]);
+    const onboarding = await page.request.post("/api/ai/transcribe", {
+      multipart: {
+        audio: { name: "a.webm", mimeType: "audio/webm", buffer: audio },
+        purpose: "onboarding",
+        durationMs: "1500",
+      },
+    });
+    expect(onboarding.status()).toBe(403);
+    // Fixtures mode has no recorded audio for arbitrary text: 503, the client uses the browser voice.
+    const speak = await page.request.post("/api/ai/speak", { data: { text: "سلام", lang: "ur" } });
+    expect(speak.status()).toBe(503);
+  });
+});
+
 const OFF_URL = `http://localhost:${Number(process.env.E2E_PORT ?? 3200) + 1}`;
 
 test.describe("request with AI_MODE=off", () => {
   test.use({ baseURL: OFF_URL });
+
+  test("no mic on the request form", async ({ page, baseURL }) => {
+    await setLanguage(page, baseURL!, "en");
+    await signInWithDemoAccount(page, "customer", CUSTOMER_1);
+    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    await page.locator("html[data-hydrated='true']").waitFor({ state: "attached" });
+    await expect(page.getByTestId("request-voice")).toHaveCount(0);
+  });
 
   test("no assistant button, and the tap path still reaches results", async ({ page, baseURL }) => {
     await setLanguage(page, baseURL!, "en");

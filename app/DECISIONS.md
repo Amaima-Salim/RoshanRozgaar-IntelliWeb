@@ -170,7 +170,7 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
   Found because repeated E2E voice runs on one shared demo account hit the old 12/min cap.
 - **Spoken guide** (`src/lib/guide`): one registry of ids → bilingual texts. Each "Listen" button plays a file from
   `/public/audio/{ur,en}/<id>.mp3` when `audio-manifest.ts` lists it, else the browser voice, else hides; the full text in
-  both languages is always available in an expandable panel. **Audio-generation tool: undecided (STOP AND ASK).**
+  both languages is always available in an expandable panel. Audio-generation tool: decided in D-50.
 - **Worker onboarding** keeps answers in memory until the read-back "Yes"; `PUT /api/worker/profile` saves everything in one
   transaction. A finished worker can reopen it with `/w/onboarding?edit=1`. Saving does not switch availability on.
 - **Ranking prior:** the Bayesian average uses a prior mean of 3.5 stars with C = 3 (`ranking-config.ts`), so a worker
@@ -195,6 +195,31 @@ Every non-obvious decision: what, why, alternatives. IDs D-01…D-29 come from t
 - **Worker photos are not shown to customers yet:** media is owner-only until a phase adds a public
   conversation-scoped route, so cards use initials.
 - **Typical price** on a worker profile is the mean of that worker's completed jobs, else the indicative rate.
+
+### D-50 — Urdu voice models (speech to text and text to speech)
+
+- **Chosen in a Claude Code session on 2026-11-10** at the team's request ("use Urdu voice models to communicate with
+  the end user"); swap freely, it is one env var.
+- **Text to speech:** `TTS_PROVIDER=azure` (default) uses Azure Speech neural voices `ur-PK-UzmaNeural` (or
+  `AZURE_SPEECH_UR_VOICE=ur-PK-AsadNeural`), native Pakistani Urdu, MP3 output, free F0 tier. Needs
+  `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`. `TTS_PROVIDER=gemini` is opt-in: Google's docs do not list Urdu as a
+  supported TTS language (the model detects the language from the text), so expect a foreign accent; it reuses
+  `GEMINI_API_KEY` and returns WAV (about 8x the size of Azure's MP3, so prefer Azure for the pre-generated files on
+  mobile data). Not yet run against either live API.
+- **Where it speaks:** every "Listen" guide button, the voice feedback messages, the onboarding read-back, the mic
+  consent text and the customer's request draft. Order: pre-generated file → `POST /api/ai/speak` → browser
+  `speechSynthesis` → hidden (text always on screen). `SpeakButton` uses the server model only when the call site
+  passes `voiceModel`, and that is never done for text with names, phones, emails or addresses.
+- **`POST /api/ai/speak`:** signed-in users only; POST so text never lands in a URL; text ≤ 600 chars; mode check →
+  fixtures/no key (503, client falls back) → AI rate limits. 64-entry in-memory cache server side, object-URL
+  cache client side. `AI_MODE=fixtures` never fakes audio.
+- **Pre-generated prompts:** `npm run audio:generate` writes `/public/audio/{ur,en}/<id>.{wav,mp3}` for every guide
+  id and fixed feedback message, then regenerates `audio-manifest.ts` from the files that exist. Nothing is
+  committed until a real key has produced real audio.
+- **Speech to text:** still Groq Whisper (`language=ur`). It is now shared by `useSpeechToText` and opened to customers for
+  spoken requests (`purpose=request`; each role may only use its own purpose; fixtures replay a request transcript).
+  The upload file name now follows the sniffed type, so Safari's `audio/mp4` is no longer sent as `.webm`.
+- **Not built:** chat voice notes (Phase 4) reuse `useSpeechToText` but need media storage first.
 
 ## Derived UI states
 
@@ -263,3 +288,16 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
 - **Booked conversations stay writable** for text and voice (the worker and customer still need to coordinate), but
   new offers are only possible while the conversation is `open`.
 - Voice notes: ≤ 60 s, ≤ 2 MB, type checked by magic bytes; rate limits: 30 texts / 10 voice notes / 20 offers per minute.
+
+## Worker identity document check (CNIC OCR + DEMO NADRA)
+
+- **OCR is a draft.** `ocrCnic` (`src/lib/ai/ocr.ts`) sends the card photos to Gemini vision, then `sanitizeCnicDraft`
+  drops anything that is not a plausible CNIC number / real date. The worker edits and confirms every field; AI never
+  decides trust. `AI_MODE=fixtures` replays a demo card, `off` / provider failure leaves the form for typing.
+- **NADRA is a demo, not an integration.** `src/lib/verification/nadra-demo.ts` checks a small fake registry
+  (`DEMO_REGISTRY`). Statuses are `demo_verified` / `mismatch` / `not_found` and the UI labels them DEMO everywhere:
+  nothing says "NADRA verified". To go live, implement `NadraVerifier` and return it from `getNadraVerifier()`.
+- **Privacy.** The full CNIC number is not stored: only a keyed HMAC (so one card cannot back two accounts) and a
+  masked form. Card photos are private `media` rows (owner-only through `/api/media/[id]`).
+- **Not wired into ranking/booking.** `demo_verified` is shown to the worker only; no trust score uses it yet.
+- Demo CNICs and flow: see README "Seeded, simulated, and mocked".

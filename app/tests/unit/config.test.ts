@@ -18,6 +18,22 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ NODE_ENV: "production", SESSION_SECRET: SECRET })).not.toThrow();
   });
 
+  it("derives APP_URL: explicit value wins, then the Vercel domain, then localhost", () => {
+    expect(loadConfig({}).appUrl).toBe("http://localhost:3000");
+    expect(loadConfig({ APP_URL: "https://rr.example.com/" }).appUrl).toBe(
+      "https://rr.example.com",
+    );
+    expect(loadConfig({ VERCEL_PROJECT_PRODUCTION_URL: "rr.vercel.app" }).appUrl).toBe(
+      "https://rr.vercel.app",
+    );
+    expect(
+      loadConfig({
+        APP_URL: "https://rr.example.com",
+        VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app",
+      }).appUrl,
+    ).toBe("https://rr.example.com");
+  });
+
   it("rejects a short SESSION_SECRET", () => {
     expect(() => loadConfig({ SESSION_SECRET: "short" })).toThrow(/32 characters/);
   });

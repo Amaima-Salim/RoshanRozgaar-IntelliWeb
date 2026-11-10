@@ -322,7 +322,7 @@
     },
     "consent": {
       "title": "Before you use the microphone",
-      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it.",
+      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it. Spoken instructions are read aloud by an Urdu voice model (Google Gemini or Microsoft Azure) from the app's own text and your answers.",
       "accept": "OK, I understand",
       "decline": "No, I will tap instead"
     },
@@ -628,7 +628,14 @@
     "draftNone": "We could not tell which kind of work this is. Please tap one above.",
     "draftUnavailable": "The assistant is not available. Please tap the kind of work.",
     "draftApplied": "Filled in below. Please check it.",
-    "draftNote": "This is a suggestion. You choose."
+    "draftNote": "This is a suggestion. You choose.",
+    "voice": {
+      "title": "Or say it in Urdu",
+      "hint": "Tap the mic and say what is wrong, for example: “the tap is leaking, I need a plumber this evening”.",
+      "heard": "We heard: «{text}»",
+      "failed": "Voice is not working right now. Please type or tap.",
+      "denied": "The mic is off. Please type or tap."
+    }
   },
   "results": {
     "title": "Workers for you",
@@ -722,5 +729,54 @@
       "start": "Could not start the chat. Try again."
     },
     "start": "Message"
+  },
+  "verify": {
+    "title": "Verify your identity",
+    "intro": "Take a clear photo of your CNIC. We read it and you check the details. Your photos stay private.",
+    "demoNotice": "DEMO: this check uses a practice registry, not NADRA. It is not a real identity verification.",
+    "front": "CNIC front",
+    "back": "CNIC back (optional)",
+    "choose": "Take or choose a photo",
+    "retake": "Change photo",
+    "scan": "Read my CNIC",
+    "scanning": "Reading the card…",
+    "aiNote": "Read by AI. Check every field and fix mistakes.",
+    "simulatedNote": "Simulated reading (AI is in demo mode). Check every field.",
+    "ocrUnavailable": "We could not read the card automatically. Type the details from your CNIC.",
+    "confirmTitle": "Check your details",
+    "cnicNumber": "CNIC number",
+    "cnicHint": "13 digits, like 12345-1234567-1",
+    "fullName": "Full name (as on card)",
+    "fatherName": "Father's name (optional)",
+    "dateOfBirth": "Date of birth",
+    "dateOfExpiry": "Card expiry (optional)",
+    "submit": "Check my CNIC",
+    "checking": "Checking…",
+    "status": {
+      "unverified": "Not checked yet",
+      "demo_verified": "Matched in demo check",
+      "mismatch": "Details do not match",
+      "not_found": "Not found in demo registry"
+    },
+    "statusHelp": {
+      "demo_verified": "Your CNIC matched the practice registry. This is a demo, not a NADRA confirmation.",
+      "mismatch": "The CNIC was found but some details differ. Fix them and try again.",
+      "not_found": "This CNIC is not in the practice registry. Check the number and try again."
+    },
+    "mismatchName": "Name does not match",
+    "mismatchDob": "Date of birth does not match",
+    "checkedCnic": "CNIC {cnic}",
+    "tryAgain": "Try again",
+    "homeCard": "Identity check",
+    "homeCta": "Verify now",
+    "homeView": "View",
+    "errors": {
+      "invalid": "Please check the CNIC number, name and date of birth.",
+      "expired": "This card has expired.",
+      "inUse": "This CNIC is already used by another account.",
+      "done": "Your identity check is already complete.",
+      "upload": "Could not upload the photo. Try a smaller or clearer picture.",
+      "generic": "Could not complete the check. Try again."
+    }
   }
 }

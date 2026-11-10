@@ -34,7 +34,8 @@ const envSchema = z.object({
   NODE_ENV: enumWithDefault(["development", "test", "production"], "development"),
   DATABASE_URL: optionalString,
   SESSION_SECRET: optionalString,
-  APP_URL: optionalUrl.transform((v) => v ?? "http://localhost:3000"),
+  // Public origin; Google's redirect URI is <APP_URL>/api/auth/callback/google.
+  APP_URL: optionalUrl,
 
   AUTH_MODE: enumWithDefault(["full", "mock"], "mock"),
   // Test-only escape hatch so E2E runs don't trip per-IP limits; refused in production.
@@ -42,6 +43,8 @@ const envSchema = z.object({
   // Marks the local E2E server (DECISIONS.md D-42/D-43). Never set on a deployment.
   RR_E2E: enumWithDefault(["0", "1"], "0"),
   VERCEL: optionalString,
+  // Set by Vercel (e.g. "my-app.vercel.app"); used only when APP_URL is missing.
+  VERCEL_PROJECT_PRODUCTION_URL: optionalString,
   MOCK_OTP_CODE: optionalString
     .pipe(
       z
@@ -62,6 +65,14 @@ const envSchema = z.object({
   AI_TIMEOUT_MS: intWithDefault(8000, 500, 60000),
   GEMINI_MODEL: optionalString.transform((v) => v ?? "gemini-flash-latest"),
   GROQ_STT_MODEL: optionalString.transform((v) => v ?? "whisper-large-v3-turbo"),
+  // Urdu text to speech (DECISIONS.md D-50): azure (default, native ur-PK voices) or gemini
+  // (uses GEMINI_API_KEY; Google does not list Urdu as a supported TTS language).
+  TTS_PROVIDER: enumWithDefault(["azure", "gemini"], "azure"),
+  GEMINI_TTS_MODEL: optionalString.transform((v) => v ?? "gemini-3.8-flash-tts"),
+  AZURE_SPEECH_KEY: optionalString,
+  AZURE_SPEECH_REGION: optionalString,
+  AZURE_SPEECH_UR_VOICE: optionalString,
+  TTS_TIMEOUT_MS: intWithDefault(15000, 1000, 60000),
 
   // No default fallback for an invalid value: a typo here must crash, not silently pick a mode.
   PAYMENTS_MODE: optionalString
@@ -140,13 +151,22 @@ export function loadConfig(env: Record<string, string | undefined>) {
 
   const authFull = e.AUTH_MODE === "full";
 
+  // Without APP_URL a deployment would send Google back to localhost, so fall back to the
+  // Vercel production domain. No trailing slash: it must match the redirect URI exactly.
+  const appUrl = (
+    e.APP_URL ??
+    (e.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${e.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000")
+  ).replace(/\/+$/, "");
+
   return {
     nodeEnv: e.NODE_ENV,
     isProduction,
     isE2E,
     databaseUrl: e.DATABASE_URL,
     sessionSecret: e.SESSION_SECRET ?? DEV_SESSION_SECRET,
-    appUrl: e.APP_URL,
+    appUrl,
     auth: {
       mode: e.AUTH_MODE,
       rateLimit: e.AUTH_RATE_LIMIT === "on" && e.NODE_ENV !== "test",
@@ -168,6 +188,19 @@ export function loadConfig(env: Record<string, string | undefined>) {
       geminiModel: e.GEMINI_MODEL,
       groqSttModel: e.GROQ_STT_MODEL,
       timeoutMs: e.AI_TIMEOUT_MS,
+      tts: {
+        provider: e.TTS_PROVIDER,
+        geminiModel: e.GEMINI_TTS_MODEL,
+        azureKey: e.AZURE_SPEECH_KEY,
+        azureRegion: e.AZURE_SPEECH_REGION,
+        azureUrVoice: e.AZURE_SPEECH_UR_VOICE,
+        timeoutMs: e.TTS_TIMEOUT_MS,
+        /** A key for the chosen provider is present; the mode check happens separately. */
+        configured:
+          e.TTS_PROVIDER === "azure"
+            ? !!e.AZURE_SPEECH_KEY && !!e.AZURE_SPEECH_REGION
+            : !!e.GEMINI_API_KEY,
+      },
     },
     payments: {
       mode: e.PAYMENTS_MODE,

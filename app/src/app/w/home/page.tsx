@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, gte, inArray, lt } from "drizzle-orm";
-import { CalendarCheck, CircleDot, Inbox, Star } from "lucide-react";
+import { CalendarCheck, CircleDot, Inbox, ShieldCheck, Star } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -11,6 +11,7 @@ import { jobs, workerReputation } from "@/lib/db/schema";
 import { requestsForWorker } from "@/lib/discovery/worker-requests";
 import { formatKarachiDate, formatKarachiTime, karachiDayBounds } from "@/lib/domain/time";
 import { getT } from "@/lib/i18n/server";
+import { loadVerification } from "@/lib/verification/service";
 import { loadWorkerProfile } from "@/lib/worker/profile";
 
 export async function generateMetadata() {
@@ -43,6 +44,7 @@ export default async function WorkerHomePage() {
   const user = await requireRolePage("worker");
   const profile = await loadWorkerProfile(user.id);
   if (!profile.onboardingComplete) redirect("/w/onboarding");
+  const verification = await loadVerification(user.id);
 
   const { t, lang } = await getT();
   await expireStale();
@@ -94,6 +96,15 @@ export default async function WorkerHomePage() {
       <div className="grid gap-6 xl:grid-cols-3 xl:items-start">
         <div className="flex flex-col gap-6">
           <AvailabilityToggle initial={profile.isAvailable} />
+          <Card title={t("verify.homeCard")} icon={<ShieldCheck />}>
+            <p data-testid="verify-home-status">{t(`verify.status.${verification.status}`)}</p>
+            <Link
+              href="/w/verify"
+              className="inline-flex min-h-touch items-center font-medium text-primary underline"
+            >
+              {verification.status === "demo_verified" ? t("verify.homeView") : t("verify.homeCta")}
+            </Link>
+          </Card>
           <Card title={t("booking.engaged.title")} icon={<CircleDot />}>
             {nextJob ? (
               <div className="flex flex-col gap-2" data-testid="engaged-block">

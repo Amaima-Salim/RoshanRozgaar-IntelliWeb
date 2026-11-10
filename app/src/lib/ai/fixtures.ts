@@ -13,3 +13,9 @@ export const FIXTURE_TRANSCRIPTS: Record<StepId, Transcript> = {
   schedule: { text: "somwar se jumma subah aur dopahar", language: "ur" },
   photo: { text: "", language: null },
 };
+
+/** Replayed for a customer's spoken request (AI-03 voice) when AI_MODE=fixtures. */
+export const FIXTURE_REQUEST_TRANSCRIPT: Transcript = {
+  text: "mere ghar ka nalka tapak raha hai, aaj shaam ko plumber chahiye",
+  language: "ur",
+};

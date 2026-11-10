@@ -18,6 +18,7 @@ async function loadAi(mode: "off" | "fixtures" | "live", providers?: Partial<AiP
       transcribe: async () => ({ text: "x", language: "ur" }),
       extractWorkerProfile: async () => ({}),
       draftRequest: async () => ({}),
+      speak: async () => ({ bytes: new Uint8Array([1, 2, 3]), mime: "audio/wav" as const }),
       ...providers,
     });
   }
@@ -278,5 +279,52 @@ describe("request drafting (AI-03)", () => {
     const ai = await loadAi("fixtures");
     const r = await ai.draftRequest({ text: "کل شام کو اے سی ٹھیک کرنا ہے" });
     expect(r.draft.trade).toBe("ac_technician");
+  });
+});
+
+describe("speech to text for customer requests", () => {
+  it("replays the request fixture in fixtures mode, with no step id", async () => {
+    const ai = await loadAi("fixtures");
+    const stt = await ai.transcribe(audio, { purpose: "request" });
+    expect(stt.simulated).toBe(true);
+    expect(stt.transcript.text).toContain("plumber");
+  });
+});
+
+describe("text to speech (Urdu voice model, D-50)", () => {
+  it("refuses when AI is off", async () => {
+    const ai = await loadAi("off");
+    await expect(ai.speak({ text: "سنیں", lang: "ur" })).rejects.toMatchObject({ reason: "off" });
+  });
+
+  it("never fakes audio in fixtures mode: the client falls back to the browser voice", async () => {
+    const speak = vi.fn();
+    const ai = await loadAi("fixtures", { speak });
+    await expect(ai.speak({ text: "سنیں", lang: "ur" })).rejects.toMatchObject({
+      reason: "invalid",
+    });
+    expect(speak).not.toHaveBeenCalled();
+  });
+
+  it("passes Urdu text and language to the provider and caches repeats", async () => {
+    const speak = vi.fn(async () => ({ bytes: new Uint8Array([9]), mime: "audio/mpeg" as const }));
+    const ai = await loadAi("live", { speak });
+    const first = await ai.speak({ text: "  آپ کو کون سا کام چاہیے؟ ", lang: "ur" });
+    await ai.speak({ text: "آپ کو کون سا کام چاہیے؟", lang: "ur" });
+    expect(first.mime).toBe("audio/mpeg");
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledWith({ text: "آپ کو کون سا کام چاہیے؟", lang: "ur" });
+  });
+
+  it.each([
+    ["a provider error", async () => Promise.reject(new Error("boom")), "provider"],
+    [
+      "empty audio",
+      async () => ({ bytes: new Uint8Array(), mime: "audio/wav" as const }),
+      "invalid",
+    ],
+  ])("turns %s into AiUnavailableError", async (_n, impl, reason) => {
+    const ai = await loadAi("live", { speak: impl });
+    await expect(ai.speak({ text: "ہیلو", lang: "ur" })).rejects.toMatchObject({ reason });
   });
 });

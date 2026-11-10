@@ -24,12 +24,14 @@ export function GuideButtons({ id, className }: { id: GuideId; className?: strin
         text={text}
         src={guideAudioSrc(id, lang)}
         label={t("guide.listen")}
+        voiceModel
       />
       <SpeakButton
         lang={other}
         text={otherText}
         src={guideAudioSrc(id, other)}
         label={createT(other).t("guide.listen")}
+        voiceModel
       />
       <details className="text-sm text-text-muted">
         <summary className="inline-flex min-h-touch cursor-pointer items-center gap-1 font-medium text-primary">

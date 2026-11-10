@@ -79,3 +79,10 @@ export const requestDraftSchema = z.strictObject({
 export const draftRequestBodySchema = z.strictObject({
   text: z.string().trim().min(1).max(500),
 });
+
+/** Body of `POST /api/ai/speak`. Short texts only: prompts, messages and a read-back. */
+export const SPEAK_MAX_CHARS = 600;
+export const speakBodySchema = z.strictObject({
+  lang: z.enum(["ur", "en"]),
+  text: z.string().trim().min(1).max(SPEAK_MAX_CHARS),
+});

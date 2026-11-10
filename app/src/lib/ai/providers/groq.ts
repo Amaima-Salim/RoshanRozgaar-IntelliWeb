@@ -2,13 +2,23 @@ import "server-only";
 import { transcriptSchema, type Transcript } from "../schemas";
 import { AiUnavailableError } from "../errors";
 
+const EXT: Record<string, string> = {
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "audio/mp4": "m4a",
+  "audio/mpeg": "mp3",
+};
+
 /** Groq Whisper speech-to-text (free tier). Audio leaves the server only for this call. */
 export async function groqTranscribe(
   audio: { bytes: Uint8Array; mime: string },
   opts: { apiKey: string; model: string; timeoutMs: number },
 ): Promise<Transcript> {
   const form = new FormData();
-  form.set("file", new Blob([new Uint8Array(audio.bytes)], { type: audio.mime }), "answer.webm");
+  // Whisper picks the decoder from the file name, so it must match the sniffed type (Safari records mp4).
+  const ext = EXT[audio.mime] ?? "webm";
+  form.set("file", new Blob([new Uint8Array(audio.bytes)], { type: audio.mime }), `answer.${ext}`);
   form.set("model", opts.model);
   form.set("language", "ur");
   form.set("response_format", "verbose_json");

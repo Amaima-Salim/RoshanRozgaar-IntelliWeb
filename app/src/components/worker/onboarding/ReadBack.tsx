@@ -27,7 +27,8 @@ export function ReadBack({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-text-muted">{t("onboarding.readback.hint")}</p>
-        <SpeakButton text={spoken} />
+        {/* Trade, years, areas, rate and hours only: no name or phone in the read-back. */}
+        <SpeakButton text={spoken} voiceModel />
       </div>
       <ul className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
         {rows.map((r) => (

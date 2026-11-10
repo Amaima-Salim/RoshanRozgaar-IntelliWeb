@@ -100,6 +100,11 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "cash_reported_customer",
   "cash_confirmed",
 ]);
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "demo_verified",
+  "mismatch",
+  "not_found",
+]);
 export const mediaKindEnum = pgEnum("media_kind", ["audio", "image"]);
 
 // ── Better Auth ──────────────────────────────────────────────────────────────
@@ -255,6 +260,41 @@ export const workerProfiles = pgTable(
         AND ${t.indicativeRatePkr} IS NOT NULL AND ${t.rateBasis} IS NOT NULL AND cardinality(${t.areaSlugs}) > 0)`,
     ),
     index("worker_profiles_trade_idx").on(t.trade),
+  ],
+);
+
+/**
+ * Worker identity-document check. DEMO ONLY: the NADRA step is an in-repo stand-in, so
+ * `demo_verified` means "matched the demo registry", never a real NADRA confirmation.
+ * The full CNIC number is not stored: only a keyed hash (duplicate detection) and a masked form.
+ */
+export const workerVerifications = pgTable(
+  "worker_verifications",
+  {
+    workerId: uuid("worker_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    cnicHash: text("cnic_hash").notNull(),
+    cnicMasked: text("cnic_masked").notNull(),
+    fullName: text("full_name").notNull(),
+    fatherName: text("father_name"),
+    dateOfBirth: text("date_of_birth").notNull(),
+    dateOfExpiry: text("date_of_expiry"),
+    frontMediaId: uuid("front_media_id").references(() => media.id, { onDelete: "set null" }),
+    backMediaId: uuid("back_media_id").references(() => media.id, { onDelete: "set null" }),
+    ocrSource: text("ocr_source").notNull(), // "ai" | "fixtures" | "manual"
+    ocrDraft: jsonb("ocr_draft"),
+    status: verificationStatusEnum("status").notNull(),
+    nadraProvider: text("nadra_provider").notNull().default("demo"),
+    nadraResult: jsonb("nadra_result").notNull(),
+    checkedAt: tstz("checked_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // One identity document, one account.
+    unique("worker_verifications_cnic_hash_unique").on(t.cnicHash),
+    check("worker_verifications_ocr_source", sql`${t.ocrSource} IN ('ai', 'fixtures', 'manual')`),
   ],
 );
 

@@ -8,7 +8,7 @@ import { getConfig } from "@/lib/config";
 import type { StepId } from "@/lib/domain/worker-profile";
 import { log } from "@/lib/log";
 import { AiUnavailableError } from "./errors";
-import { FIXTURE_TRANSCRIPTS } from "./fixtures";
+import { FIXTURE_REQUEST_TRANSCRIPT, FIXTURE_TRANSCRIPTS } from "./fixtures";
 import {
   DRAFT_REQUEST_SYSTEM,
   EXTRACT_SYSTEM,
@@ -17,6 +17,7 @@ import {
 } from "./prompts";
 import { geminiJson } from "./providers/gemini";
 import { groqTranscribe } from "./providers/groq";
+import { azureSpeak, geminiSpeak, type SpeechAudio, type SpeechLang } from "./providers/tts";
 import type { AiProviders } from "./providers/types";
 import { draftRequestByRules, emptyRequestDraft, type RequestDraft } from "./request-rules";
 import { extractByRules, type AllowedArea } from "./rules";
@@ -30,6 +31,7 @@ import {
 } from "./schemas";
 
 export { AiUnavailableError } from "./errors";
+export { ocrCnic, __setOcrForTest } from "./ocr";
 
 /** Test seam: replaces the network providers (failure injection, contract tests). */
 let override: AiProviders | null = null;
@@ -64,26 +66,52 @@ function liveProviders(): AiProviders {
         timeoutMs: ai.timeoutMs,
       });
     },
+    async speak({ text, lang }) {
+      const { tts } = ai;
+      if (tts.provider === "azure") {
+        if (!tts.azureKey || !tts.azureRegion) throw new AiUnavailableError("no_key");
+        return azureSpeak(text, lang, {
+          apiKey: tts.azureKey,
+          region: tts.azureRegion,
+          urVoice: tts.azureUrVoice,
+          timeoutMs: tts.timeoutMs,
+        });
+      }
+      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
+      return geminiSpeak(text, lang, {
+        apiKey: ai.geminiApiKey,
+        model: tts.geminiModel,
+        timeoutMs: tts.timeoutMs,
+      });
+    },
   };
 }
 
 export type AiResult<T> = T & { simulated: boolean };
 
-/** Speech to text. `fixtures` replays a recorded transcript for the step; `off` refuses. */
+/**
+ * Speech to text. `fixtures` replays a recorded transcript for the step (or the customer
+ * request fixture when `purpose` is "request"); `off` refuses.
+ */
 export async function transcribe(
   audio: { bytes: Uint8Array; mime: string },
-  opts: { stepId?: StepId },
+  opts: { stepId?: StepId; purpose?: "onboarding" | "request" },
 ): Promise<AiResult<{ transcript: Transcript }>> {
   const { mode } = getConfig().ai;
   if (mode === "off") throw new AiUnavailableError("off");
   if (mode === "fixtures") {
-    const transcript = opts.stepId ? FIXTURE_TRANSCRIPTS[opts.stepId] : undefined;
+    const transcript =
+      opts.purpose === "request"
+        ? FIXTURE_REQUEST_TRANSCRIPT
+        : opts.stepId
+          ? FIXTURE_TRANSCRIPTS[opts.stepId]
+          : undefined;
     if (!transcript || !transcript.text) throw new AiUnavailableError("invalid");
     return { transcript, simulated: true };
   }
   const providers = override ?? liveProviders();
   try {
-    const transcript = await providers.transcribe(audio, opts);
+    const transcript = await providers.transcribe(audio, { stepId: opts.stepId });
     if (!transcript.text.trim()) throw new AiUnavailableError("invalid");
     return { transcript, simulated: false };
   } catch (err) {
@@ -164,5 +192,40 @@ export async function draftRequest(input: {
   } catch (err) {
     if (!(err instanceof AiUnavailableError)) log.warn("ai.draft_request_failed", { error: err });
     return { draft: emptyRequestDraft(), source: "none", simulated };
+  }
+}
+
+export type { SpeechAudio, SpeechLang } from "./providers/tts";
+
+/** Small in-memory cache: guide prompts repeat, and free TTS quotas are tight. */
+const speechCache = new Map<string, SpeechAudio>();
+const SPEECH_CACHE_MAX = 64;
+
+/**
+ * Text to speech in Urdu (ur-PK) or English. Live mode only: `fixtures` has no recorded audio for
+ * arbitrary text and says so (the client then uses the browser voice), `off` refuses.
+ */
+export async function speak(input: { text: string; lang: SpeechLang }): Promise<SpeechAudio> {
+  const { mode, tts } = getConfig().ai;
+  if (mode === "off") throw new AiUnavailableError("off");
+  if (mode === "fixtures") throw new AiUnavailableError("invalid");
+  const text = input.text.trim();
+  if (!text) throw new AiUnavailableError("invalid");
+  const key = `${tts.provider}:${input.lang}:${text}`;
+  const hit = speechCache.get(key);
+  if (hit) return hit;
+  const providers = override ?? liveProviders();
+  try {
+    const audio = await providers.speak({ text, lang: input.lang });
+    if (audio.bytes.length === 0) throw new AiUnavailableError("invalid");
+    if (speechCache.size >= SPEECH_CACHE_MAX) {
+      speechCache.delete(speechCache.keys().next().value!);
+    }
+    speechCache.set(key, audio);
+    return audio;
+  } catch (err) {
+    if (err instanceof AiUnavailableError) throw err;
+    log.warn("ai.speak_failed", { error: err });
+    throw new AiUnavailableError("provider");
   }
 }

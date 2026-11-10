@@ -2,6 +2,7 @@
 
 import { FlaskConical, Sparkles } from "lucide-react";
 import { MicButton } from "@/components/ui/MicButton";
+import { SpokenMessage } from "@/components/voice/SpokenMessage";
 import type { WorkerProfileDraft } from "@/lib/ai/schemas";
 import type { StepId } from "@/lib/domain/worker-profile";
 import { useI18n } from "@/lib/i18n/client";
@@ -22,7 +23,7 @@ export function VoiceBox({
   fixtures: boolean;
   onDraft: (draft: WorkerProfileDraft) => void;
 }) {
-  const { t, tKey } = useI18n();
+  const { t } = useI18n();
   const voice = useVoiceAnswer({ stepId, onDraft });
   return (
     <div
@@ -52,13 +53,7 @@ export function VoiceBox({
         </p>
       ) : null}
       {voice.messageKey ? (
-        <p
-          role="alert"
-          className="text-center font-semibold text-danger"
-          data-testid="voice-message"
-        >
-          {tKey(voice.messageKey)}
-        </p>
+        <SpokenMessage messageKey={voice.messageKey} testId="voice-message" />
       ) : null}
       {voice.needConsent ? (
         <VoiceConsent onAccept={voice.acceptConsent} onDecline={voice.declineConsent} />

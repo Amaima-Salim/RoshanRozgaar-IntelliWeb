@@ -2,11 +2,16 @@
 
 import { LocateFixed } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { GuideButtons } from "@/components/guide/GuideButtons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { MicButton } from "@/components/ui/MicButton";
+import { SpeakButton } from "@/components/ui/SpeakButton";
 import { Tile } from "@/components/ui/Tile";
+import { SpokenMessage } from "@/components/voice/SpokenMessage";
+import { useSpeechToText } from "@/components/voice/useSpeechToText";
+import { VoiceConsent } from "@/components/worker/onboarding/VoiceConsent";
 import { TRADE_ICONS } from "@/components/worker/trade-icons";
 import { nearestArea } from "@/lib/domain/geo";
 import { parseKarachiLocal, startForChip } from "@/lib/domain/time";
@@ -74,14 +79,15 @@ export function RequestForm({
   const [draft, setDraft] = useState<Draft | "none" | "unavailable" | null>(null);
   const [drafting, setDrafting] = useState(false);
 
-  const understand = async () => {
+  /** Asks for a draft of `text`; resolves false only when the assistant itself failed. */
+  const understand = async (text: string = details.trim()) => {
     setDrafting(true);
     setDraft(null);
     try {
       const res = await fetch("/api/ai/draft-request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: details.trim() }),
+        body: JSON.stringify({ text }),
       });
       const json = (await res.json()) as {
         ok: boolean;
@@ -90,11 +96,40 @@ export function RequestForm({
       if (!json.ok || !json.data) setDraft("unavailable");
       else if (!json.data.draft.trade) setDraft("none");
       else setDraft({ ...json.data.draft, simulated: json.data.simulated });
+      return json.ok;
     } catch {
       setDraft("unavailable");
+      return false;
     } finally {
       setDrafting(false);
     }
+  };
+
+  // Spoken request (AI-03 voice): Urdu speech → text in the box → the same draft the customer confirms.
+  const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
+  const [heard, setHeard] = useState<{ text: string; simulated: boolean } | null>(null);
+  const [spoken, setSpoken] = useState(false);
+  const onVoiceText = useCallback(async (text: string, simulated: boolean) => {
+    const clipped = text.slice(0, 500);
+    setHeard({ text: clipped, simulated });
+    setDetails(clipped);
+    setSpoken(true);
+    setVoiceMessage(null);
+    return understand(clipped);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const onVoiceFail = useCallback(
+    (reason: "failed" | "denied") =>
+      setVoiceMessage(reason === "denied" ? "request.voice.denied" : "request.voice.failed"),
+    [],
+  );
+  const mic = useSpeechToText({ purpose: "request", onText: onVoiceText, onFail: onVoiceFail });
+  const pressMic = () => {
+    if (mic.state !== "listening" && mic.state !== "processing") {
+      setVoiceMessage(null);
+      setHeard(null);
+    }
+    mic.press();
   };
 
   const applyDraft = (d: Draft) => {
@@ -124,7 +159,7 @@ export function RequestForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           trade,
-          source: "tap",
+          source: spoken ? "voice" : details.trim() ? "text" : "tap",
           summaryText: details.trim() || undefined,
           summaryLang: details.trim() ? lang : undefined,
           areaSlug,
@@ -170,12 +205,45 @@ export function RequestForm({
             );
           })}
         </ul>
+        {aiMode !== "off" ? (
+          <div
+            className="mt-2 flex flex-col items-center gap-3 rounded-xl bg-canvas p-4"
+            data-testid="request-voice"
+          >
+            <p className="font-semibold">{t("request.voice.title")}</p>
+            <p className="text-center text-sm text-text-muted">{t("request.voice.hint")}</p>
+            <MicButton state={mic.state} onPress={pressMic} />
+            {heard ? (
+              <p
+                className="flex flex-wrap items-center justify-center gap-2 text-center"
+                data-testid="request-heard"
+              >
+                <span dir="auto">{t("request.voice.heard", { text: heard.text })}</span>
+                <Badge kind="ai" />
+                {heard.simulated ? (
+                  <span className="text-sm font-medium text-text-muted">
+                    {t("onboarding.voice.simulated")}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+            {voiceMessage ? (
+              <SpokenMessage messageKey={voiceMessage} testId="request-voice-message" />
+            ) : null}
+            {mic.needConsent ? (
+              <VoiceConsent onAccept={mic.acceptConsent} onDecline={mic.declineConsent} />
+            ) : null}
+          </div>
+        ) : null}
         <label htmlFor={detailsId} className="mt-2 flex flex-col gap-2">
           <span className="font-semibold">{t("request.detailsLabel")}</span>
           <textarea
             id={detailsId}
             value={details}
-            onChange={(e) => setDetails(e.target.value)}
+            onChange={(e) => {
+              setDetails(e.target.value);
+              setSpoken(false);
+            }}
             maxLength={500}
             rows={2}
             placeholder={t("request.detailsPlaceholder")}
@@ -187,7 +255,7 @@ export function RequestForm({
           <Button
             variant="outline"
             loading={drafting}
-            onClick={understand}
+            onClick={() => void understand()}
             data-testid="request-understand"
             {...bi("request.understand")}
           />
@@ -199,7 +267,14 @@ export function RequestForm({
             data-testid="request-draft"
           >
             {draft === "none" || draft === "unavailable" ? (
-              <p>{t(draft === "none" ? "request.draftNone" : "request.draftUnavailable")}</p>
+              spoken ? (
+                // The customer spoke, so they hear the answer too (may not read).
+                <SpokenMessage
+                  messageKey={draft === "none" ? "request.draftNone" : "request.draftUnavailable"}
+                />
+              ) : (
+                <p>{t(draft === "none" ? "request.draftNone" : "request.draftUnavailable")}</p>
+              )
             ) : (
               <>
                 <p className="flex items-center gap-2 font-semibold">
@@ -215,6 +290,21 @@ export function RequestForm({
                   <p>{t("request.draftWhen", { when: tKey(`request.${draft.when}`) })}</p>
                 ) : null}
                 <p className="text-sm text-text-muted">{t("request.draftNote")}</p>
+                {/* The proposal read aloud in Urdu: a trade and a time, nothing personal. */}
+                <SpeakButton
+                  className="self-start"
+                  voiceModel
+                  text={[
+                    t("request.draftTitle"),
+                    t("request.draftTrade", { trade: t(`trades.${draft.trade!}`) }),
+                    draft.when
+                      ? t("request.draftWhen", { when: tKey(`request.${draft.when}`) })
+                      : "",
+                    t("request.draftNote"),
+                  ]
+                    .filter(Boolean)
+                    .join("۔ ")}
+                />
                 <Button
                   onClick={() => applyDraft(draft)}
                   data-testid="request-draft-use"
