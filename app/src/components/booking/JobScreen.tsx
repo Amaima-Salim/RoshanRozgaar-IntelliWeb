@@ -7,6 +7,7 @@ import {
   MapPin,
   MessageCircle,
   Play,
+  Star,
   Wallet,
   XCircle,
 } from "lucide-react";
@@ -253,6 +254,28 @@ export function JobScreen({ initial }: { initial: JobView }) {
             <p className="rounded-lg bg-primary-soft p-3 font-medium text-primary-strong">
               {t("booking.job.completedNote")}
             </p>
+          ) : null}
+          {job.status === "completed" && !isWorker ? (
+            job.reviewed ? (
+              <p className="rounded-lg bg-canvas p-3 font-medium" data-testid="job-reviewed">
+                {t("trust.cta.done")}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-text-muted">{t("trust.cta.rateHint")}</p>
+                <Button
+                  asChild
+                  size="lg"
+                  fullWidth
+                  icon={<Star aria-hidden className="size-5" />}
+                  label={t("trust.cta.rate")}
+                >
+                  <Link href={`/c/job/${job.id}/review`} data-testid="job-rate">
+                    {t("trust.cta.rate")}
+                  </Link>
+                </Button>
+              </div>
+            )
           ) : null}
           {job.status === "cancelled" ? (
             <p className="rounded-lg bg-canvas p-3" data-testid="job-cancelled-note">

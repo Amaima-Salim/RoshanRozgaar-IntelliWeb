@@ -2,7 +2,7 @@ import "server-only";
 import { asc, eq } from "drizzle-orm";
 import { HttpError } from "@/lib/api/respond";
 import { db } from "@/lib/db/client";
-import { areas, jobEvents, jobs, requests, users } from "@/lib/db/schema";
+import { areas, jobEvents, jobs, requests, reviews, users } from "@/lib/db/schema";
 
 export type JobEventView = {
   toStatus: string;
@@ -31,6 +31,8 @@ export type JobView = {
   conversationId: string;
   completionRequested: boolean;
   cancelReason: string | null;
+  /** The customer has already reviewed this job (BR-P6: one review per job). */
+  reviewed: boolean;
   events: JobEventView[];
 };
 
@@ -60,6 +62,11 @@ export async function loadJobView(jobId: string, viewerId: string): Promise<JobV
     .where(eq(jobEvents.jobId, jobId))
     .orderBy(asc(jobEvents.at));
 
+  const [review] = await db
+    .select({ id: reviews.id })
+    .from(reviews)
+    .where(eq(reviews.jobId, jobId));
+
   return {
     id: row.job.id,
     version: row.job.version,
@@ -78,6 +85,7 @@ export async function loadJobView(jobId: string, viewerId: string): Promise<JobV
     conversationId: row.job.conversationId,
     completionRequested: row.job.completionRequestedAt !== null,
     cancelReason: row.job.cancelReason,
+    reviewed: !!review,
     events: events.map((e) => ({
       toStatus: e.toStatus,
       fromStatus: e.fromStatus,

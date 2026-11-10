@@ -778,5 +778,100 @@
       "upload": "Could not upload the photo. Try a smaller or clearer picture.",
       "generic": "Could not complete the check. Try again."
     }
+  },
+  "trust": {
+    "review": {
+      "title": "Rate this job",
+      "intro": "How was {name}?",
+      "starsLabel": "Your rating",
+      "star": "{count} of 5 stars",
+      "starsHelp": "Tap a star. 1 is poor, 5 is excellent.",
+      "signalsTitle": "A few quick questions",
+      "signalsHint": "Tap Yes or No. Skip any you are not sure about.",
+      "yes": "Yes",
+      "no": "No",
+      "skip": "Not sure",
+      "onTime": "Did they arrive on time?",
+      "quality": "Was the work good?",
+      "fairPrice": "Was the price fair?",
+      "respectful": "Were they respectful and safe?",
+      "commentTitle": "Anything to add? (optional)",
+      "commentPlaceholder": "Write a few words, or speak.",
+      "record": "Speak your review",
+      "stop": "Stop",
+      "recording": "Recording… {seconds}s",
+      "understanding": "Understanding what you said…",
+      "voiceDenied": "The microphone is blocked. You can type instead.",
+      "voiceFailed": "Could not understand the recording. You can type instead.",
+      "voiceSaved": "Your voice is attached to the review.",
+      "voiceOff": "Your recording is saved, but it could not be turned into text. You can type instead.",
+      "makeDraft": "Summarise my comment (AI)",
+      "drafting": "Reading your comment…",
+      "draftTitle": "AI draft from your words",
+      "draftHint": "AI made this from your comment. Check it, edit it, or remove it. Nothing is sent until you press Send review.",
+      "draftTags": "Topics",
+      "draftEn": "Summary in English",
+      "draftUr": "Summary in Urdu",
+      "draftFlagged": "This comment looks unsafe or abusive. Your stars and answers still count, but the text will not be shown to others.",
+      "draftRemove": "Remove the AI draft",
+      "draftFailed": "AI could not summarise this. Your stars and answers can still be sent.",
+      "submit": "Send review",
+      "submitting": "Sending…",
+      "needStars": "Please choose a star rating first.",
+      "thanks": "Thank you. Your review helps the next customer decide.",
+      "backToJob": "Back to the job",
+      "already": "You already reviewed this job.",
+      "notReady": "You can review a job after it is completed.",
+      "failed": "Could not send the review. Please try again.",
+      "offline": "You are offline. Reviews are sent only when you are connected."
+    },
+    "cta": {
+      "rate": "Rate this job",
+      "rateHint": "Tell the next customer how it went.",
+      "done": "You reviewed this job. Thank you."
+    },
+    "tags": {
+      "punctual": "On time",
+      "late": "Late",
+      "skilled": "Skilled",
+      "poor_work": "Poor work",
+      "fair_price": "Fair price",
+      "pricey": "Expensive",
+      "polite": "Polite",
+      "rude": "Rude",
+      "tidy": "Tidy",
+      "hire_again": "Would hire again"
+    },
+    "signal": {
+      "onTime": "{pct}% say they arrived on time",
+      "quality": "{pct}% say the work was good",
+      "fairPrice": "{pct}% say the price was fair",
+      "respectful": "{pct}% say they were respectful and safe"
+    },
+    "profile": {
+      "summaryAi": "AI summary of {count} real customer reviews",
+      "summaryData": "From {count} real customer reviews",
+      "signals": "What customers answered",
+      "signalsFew": "Percentages appear once at least 3 customers have answered.",
+      "repeat": "{count} repeat customers",
+      "recent": "Recent reviews",
+      "customer": "Customer",
+      "stars": "{count} of 5 stars",
+      "reviewsCount": "{count} reviews",
+      "oneReview": "1 review"
+    },
+    "worker": {
+      "title": "Your reputation",
+      "improve": "How to improve",
+      "keepGoing": "Customers are happy with the answers so far. Keep it up.",
+      "needMore": "Hints appear after a few customers have answered.",
+      "hint": {
+        "onTime": "Some customers said you were late. Tell them honestly when you will arrive, and keep that time.",
+        "quality": "Some customers were not happy with the work. Explain what you will do before you start, and check the result with them.",
+        "fairPrice": "Some customers felt the price was high. Agree the price in the chat before you come.",
+        "respectful": "Some customers did not feel respected. Greet politely and keep the customer's home tidy."
+      },
+      "profileTitle": "Your profile"
+    }
   }
 }
