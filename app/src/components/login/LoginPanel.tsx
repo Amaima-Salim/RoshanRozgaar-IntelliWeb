@@ -8,6 +8,8 @@ import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { useI18n } from "@/lib/i18n/client";
+import { authClient } from "@/lib/auth/client";
+import { EmailOtpPanel } from "./EmailOtpPanel";
 import { Keypad } from "./Keypad";
 
 type Role = "worker" | "customer";
@@ -68,6 +70,30 @@ function safeNext(next: string | null, role: Role | null): string | null {
   return null;
 }
 
+/** Google "G" mark (brand colours, per Google's sign-in branding guidelines). */
+function GoogleMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 48 48" className="size-5">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"
+      />
+    </svg>
+  );
+}
+
 const formatPhone = (digits: string) =>
   digits.length > 4 ? `${digits.slice(0, 4)} ${digits.slice(4)}` : digits;
 
@@ -76,11 +102,13 @@ export function LoginPanel({
   next,
   demoCode,
   demoAccounts,
+  providers,
 }: {
   role: Role;
   next: string | null;
   demoCode: string;
   demoAccounts: DemoAccount[];
+  providers: { google: boolean; email: boolean; emailDevNote: boolean; googleFailed: boolean };
 }) {
   const { t, bi, lang } = useI18n();
   const router = useRouter();
@@ -92,6 +120,27 @@ export function LoginPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
   const [resendSeconds, setResendSeconds] = useState(0);
+  // Worker default: demo phone keypad, email under "More options". Customer default: email.
+  const [method, setMethod] = useState<"phone" | "email">(
+    providers.email && role === "customer" ? "email" : "phone",
+  );
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleError, setGoogleError] = useState(providers.googleFailed);
+
+  const signInWithGoogle = async () => {
+    setGoogleBusy(true);
+    setGoogleError(false);
+    const res = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+      errorCallbackURL: `/login?role=${role}`,
+    });
+    // A successful call navigates away; reaching here means it did not start.
+    if (res.error) {
+      setGoogleBusy(false);
+      setGoogleError(true);
+    }
+  };
 
   // Counts down the resend wait one second at a time (no clock reads during render).
   useEffect(() => {
@@ -217,9 +266,34 @@ export function LoginPanel({
           </nav>
         </div>
 
-        <Banner kind="demoLogin" />
+        {providers.google ? (
+          <div className="flex flex-col gap-3">
+            <Button
+              size="lg"
+              fullWidth
+              variant="outline"
+              loading={googleBusy}
+              onClick={signInWithGoogle}
+              icon={<GoogleMark />}
+              data-testid="google-signin"
+              {...bi("login.googleButton")}
+            />
+            {googleError ? (
+              <p role="alert" className="font-semibold text-danger" data-testid="google-error">
+                {t("login.googleFailed")}
+              </p>
+            ) : null}
+            <p aria-hidden className="text-center text-sm text-text-muted">
+              {t("login.orDivider")}
+            </p>
+          </div>
+        ) : null}
 
-        {step === "phone" ? (
+        {method === "phone" ? <Banner kind="demoLogin" /> : null}
+
+        {method === "email" ? (
+          <EmailOtpPanel devNote={providers.emailDevNote} onSignedIn={finish} />
+        ) : step === "phone" ? (
           <div className="flex flex-col gap-4">
             <label htmlFor={phoneId} className="flex flex-col gap-1">
               <span className="text-lg font-semibold">{t("login.phoneLabel")}</span>
@@ -307,6 +381,22 @@ export function LoginPanel({
             </div>
           </div>
         )}
+
+        {providers.email ? (
+          <details className="rounded-lg border border-border px-4 py-2" open={role === "customer"}>
+            <summary className="min-h-touch cursor-pointer py-2 font-medium text-primary">
+              {t("login.moreOptions")}
+            </summary>
+            <button
+              type="button"
+              className="min-h-touch w-full text-start font-medium text-primary underline"
+              onClick={() => setMethod(method === "email" ? "phone" : "email")}
+              data-testid="switch-method"
+            >
+              {t(method === "email" ? "login.usePhone" : "login.useEmail")}
+            </button>
+          </details>
+        ) : null}
 
         <p
           role="alert"

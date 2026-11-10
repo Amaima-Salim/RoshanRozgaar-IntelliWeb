@@ -11,12 +11,13 @@ export async function generateMetadata() {
   return { title: t("login.title") };
 }
 
-/** Sign-in (Figma 02). Phase 0: demo phone login + one-tap demo accounts only. */
+/** Sign-in (Figma 02). Demo phone login, Google and email code (Phase 1). */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const role = params.role === "worker" ? "worker" : "customer";
   const next = typeof params.next === "string" ? params.next : null;
 
+  const config = getConfig();
   const user = await getSession();
   if (user) redirect(user.role ? homeFor(user.role) : "/");
 
@@ -41,7 +42,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <LoginPanel
           role={role}
           next={next}
-          demoCode={getConfig().auth.mockOtpCode}
+          demoCode={config.auth.mockOtpCode}
+          providers={{
+            google: config.auth.googleEnabled,
+            email: config.auth.emailOtpEnabled,
+            emailDevNote:
+              config.nodeEnv === "development" &&
+              !config.auth.gmail.user &&
+              !config.auth.emailOtpStub,
+            googleFailed: typeof params.error === "string",
+          }}
           demoAccounts={demoAccounts}
         />
       </div>

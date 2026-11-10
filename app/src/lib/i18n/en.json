@@ -68,8 +68,26 @@
       "TOO_MANY_ATTEMPTS": "Too many wrong tries. Get a new code.",
       "RATE_LIMITED": "Too many requests. Wait a minute and try again.",
       "NETWORK": "No connection to the server. Check your internet and try again.",
-      "UNKNOWN": "Something went wrong. Try again."
-    }
+      "UNKNOWN": "Something went wrong. Try again.",
+      "EMAIL_SEND_FAILED": "We could not send the email. No code was sent.",
+      "INVALID_EMAIL": "That email address does not look right.",
+      "GOOGLE_FAILED": "Google sign-in did not finish. Try again or use another way."
+    },
+    "googleButton": "Continue with Google",
+    "orDivider": "or",
+    "moreOptions": "More ways to sign in",
+    "useEmail": "Get a code by email",
+    "usePhone": "Use demo phone login",
+    "emailLabel": "Your email address",
+    "emailHint": "We will email you a 6-digit code.",
+    "sendEmailCode": "Email me a code",
+    "emailSentTo": "We emailed a code to {email}.",
+    "emailExpiry": "The code works for {minutes} minutes.",
+    "emailCodeBox": "Code digit {n} of 6",
+    "changeEmail": "Change email",
+    "emailDevNote": "Dev mode — the code is in the server log.",
+    "emailFailedAlt": "You can still continue with Google or the demo phone login.",
+    "googleFailed": "Google sign-in did not finish. Try again or use another way."
   },
   "badge": {
     "free": "Free",

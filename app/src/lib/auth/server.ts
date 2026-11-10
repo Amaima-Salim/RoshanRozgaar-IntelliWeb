@@ -5,6 +5,7 @@ import { getConfig } from "@/lib/config";
 import { db } from "@/lib/db/client";
 import * as schema from "@/lib/db/schema";
 import { demoPhone } from "./demo-phone";
+import { emailOtpPlugin } from "./email-otp";
 
 function createAuth() {
   const config = getConfig();
@@ -13,6 +14,22 @@ function createAuth() {
     baseURL: config.appUrl,
     secret: config.sessionSecret,
     trustedOrigins: [config.appUrl],
+    socialProviders: config.auth.googleEnabled
+      ? {
+          google: {
+            clientId: config.auth.google.clientId!,
+            clientSecret: config.auth.google.clientSecret!,
+            // Basic profile only; no Gmail API scopes (docs/05 §1).
+            scope: ["openid", "email", "profile"],
+            prompt: "select_account",
+          },
+        }
+      : {},
+    account: {
+      // Same *verified* email → one user. Google only links when it reports the email as
+      // verified; phone-only users carry `@phone.invalid` and are never matched (docs/05 §6).
+      accountLinking: { enabled: true, trustedProviders: ["google"] },
+    },
     database: drizzleAdapter(db, {
       provider: "pg",
       usePlural: true,
@@ -48,7 +65,11 @@ function createAuth() {
       enabled: config.auth.rateLimit,
       storage: "database",
     },
-    plugins: [demoPhone({ code: config.auth.mockOtpCode }), nextCookies()],
+    plugins: [
+      demoPhone({ code: config.auth.mockOtpCode }),
+      ...(config.auth.emailOtpEnabled ? [emailOtpPlugin({ stub: config.auth.emailOtpStub })] : []),
+      nextCookies(),
+    ],
   });
 }
 

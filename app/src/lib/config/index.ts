@@ -150,7 +150,12 @@ export function loadConfig(env: Record<string, string | undefined>) {
       rateLimit: e.AUTH_RATE_LIMIT === "on" && e.NODE_ENV !== "test",
       mockOtpCode: e.MOCK_OTP_CODE,
       googleEnabled: authFull && !!e.GOOGLE_CLIENT_ID && !!e.GOOGLE_CLIENT_SECRET,
-      emailOtpEnabled: authFull && !!e.GMAIL_USER && !!e.GMAIL_APP_PASSWORD,
+      // Development without Gmail values uses the labelled console fallback (docs/05 §4);
+      // the local E2E server stubs delivery with a fixed code.
+      emailOtpEnabled:
+        authFull &&
+        ((!!e.GMAIL_USER && !!e.GMAIL_APP_PASSWORD) || e.NODE_ENV === "development" || isE2E),
+      emailOtpStub: isE2E,
       google: { clientId: e.GOOGLE_CLIENT_ID, clientSecret: e.GOOGLE_CLIENT_SECRET },
       gmail: { user: e.GMAIL_USER, appPassword: e.GMAIL_APP_PASSWORD, fromName: e.EMAIL_FROM_NAME },
     },
