@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: rr
+          POSTGRES_PASSWORD: rr
+          POSTGRES_DB: roshan
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rr -d roshan"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://rr:rr@localhost:5433/roshan
+      TEST_DATABASE_URL: postgres://rr:rr@localhost:5433/roshan_test
+      SESSION_SECRET: ci-only-session-secret-not-used-anywhere-else-000
+      APP_URL: http://localhost:3200
+      # Production `next start` refuses the dev session secret; this one is CI-only.
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Unit + integration (real Postgres, real migrations incl. the exclusion constraint)
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
