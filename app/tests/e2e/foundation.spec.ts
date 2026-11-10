@@ -72,12 +72,14 @@ test.describe("demo phone login and role routing", () => {
     await expect(page.getByText("Sign-in is not identity verification.")).toBeVisible();
   });
 
-  test("one-tap demo worker lands on /w/home; customer pages redirect back", async ({ page }) => {
+  test("one-tap demo worker (not onboarded) lands on onboarding; customer pages redirect back", async ({
+    page,
+  }) => {
     await signInWithDemoAccount(page, "worker", DEMO_WORKER);
-    await expect(page).toHaveURL(/\/w\/home$/);
-    await expect(page.getByTestId("phase-placeholder")).toBeVisible();
+    await expect(page).toHaveURL(/\/w\/onboarding$/);
+    await expect(page.getByTestId("question")).toBeVisible();
     await open(page, "/c/request/new");
-    await expect(page).toHaveURL(/\/w\/home$/);
+    await expect(page).toHaveURL(/\/w\/onboarding$/);
   });
 
   test("one-tap demo customer lands on /c/request/new; worker pages redirect back", async ({
@@ -108,7 +110,7 @@ test.describe("demo phone login and role routing", () => {
     await expect(page.getByTestId("login-error")).toHaveText(/Wrong code\. 4 tries left\./);
     await page.getByTestId("code-input").fill("123456");
     await page.getByTestId("verify-code").click();
-    await expect(page).toHaveURL(/\/w\/home$/);
+    await expect(page).toHaveURL(/\/w\/onboarding$/);
   });
 
   test("invalid phone keeps the send button disabled", async ({ page }) => {
