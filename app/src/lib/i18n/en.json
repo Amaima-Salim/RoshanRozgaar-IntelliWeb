@@ -160,5 +160,172 @@
   },
   "dev": {
     "galleryTitle": "Component gallery (dev only)"
+  },
+  "onboarding": {
+    "title": "Set up your work profile",
+    "stepsLabel": "Steps",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "sayAgain": "Say it again",
+    "stepNames": {
+      "trade": "Your work",
+      "years": "Experience",
+      "areas": "Where",
+      "rate": "Your rate",
+      "schedule": "When free",
+      "photo": "Photo",
+      "review": "Check"
+    },
+    "q": {
+      "trade": "What work do you do?",
+      "years": "How many years have you worked?",
+      "areas": "Which areas will you work in?",
+      "rate": "What is your usual rate?",
+      "schedule": "When are you free?",
+      "photo": "Add your photo (optional)"
+    },
+    "hint": {
+      "trade": "Tap one",
+      "years": "Tap + or −",
+      "areas": "Tap all that apply",
+      "rate": "Tap a price, then how it is charged",
+      "schedule": "Tap the days, then the times",
+      "photo": "You can skip this"
+    },
+    "yearsValue": "{n} years",
+    "yearsOne": "1 year",
+    "yearsNew": "New (under 1 year)",
+    "yearsMore": "More years",
+    "yearsLess": "Fewer years",
+    "rateValue": "Rs {amount}",
+    "rateMore": "Higher",
+    "rateLess": "Lower",
+    "rateAdjust": "Change by Rs 100",
+    "basis": {
+      "per_visit": "Per visit",
+      "per_hour": "Per hour",
+      "per_job": "Per job"
+    },
+    "dayParts": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "dayPartTimes": {
+      "morning": "8 am – 12 pm",
+      "afternoon": "12 pm – 5 pm",
+      "evening": "5 pm – 10 pm"
+    },
+    "days": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "photoChoose": "Take or choose a photo",
+    "photoChange": "Change photo",
+    "photoRemove": "Remove photo",
+    "photoUploading": "Uploading…",
+    "photoError": "The photo did not upload. You can skip this step.",
+    "photoAlt": "Your profile photo",
+    "readback": {
+      "title": "Is this right?",
+      "hint": "Tap any row to change it.",
+      "yes": "Yes, save my profile",
+      "saving": "Saving…",
+      "saveError": "Could not save. Check your internet and try again.",
+      "missing": "Please answer: {steps}",
+      "edit": "Change",
+      "notAnswered": "Not answered yet",
+      "rows": {
+        "trade": "Work",
+        "years": "Experience",
+        "areas": "Areas",
+        "rate": "Rate",
+        "schedule": "Free times",
+        "photo": "Photo"
+      },
+      "photoAdded": "Added",
+      "photoNone": "None (optional)"
+    },
+    "live": {
+      "title": "Your profile so far",
+      "empty": "Your answers will appear here."
+    },
+    "consent": {
+      "title": "Before you use the microphone",
+      "body": "If you speak, your voice is recorded for a few seconds and sent to Groq (speech to text) and Google Gemini (understanding). Your name, phone and address are never sent. We do not keep the recording after it is understood. Everything you say is shown to you first, and you always confirm it.",
+      "accept": "OK, I understand",
+      "decline": "No, I will tap instead"
+    },
+    "voice": {
+      "heard": "We heard: “{text}”",
+      "unknownTrade": "We did not catch your work. Please tap one.",
+      "unknownYears": "We did not catch the years. Please use + or −.",
+      "unknownAreas": "We did not catch an area we cover. Please tap your areas.",
+      "unknownRate": "We did not catch the rate. Please tap a price.",
+      "unknownSchedule": "We did not catch the days or times. Please tap them.",
+      "denied": "The microphone is blocked. Please tap your answer instead.",
+      "failed": "Voice is not working right now. Please tap your answer instead.",
+      "simulated": "Simulated AI (demo recording)",
+      "aiLabel": "AI draft — please check"
+    }
+  },
+  "days": {
+    "0": "Sun",
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat"
+  },
+  "workerHome": {
+    "greeting": "Hello, {name}",
+    "editProfile": "Edit profile",
+    "availability": {
+      "title": "Are you free to work?",
+      "on": "Yes, I am free",
+      "off": "No, not free now",
+      "hintOn": "Customers can find you now.",
+      "hintOff": "Customers cannot see you as free.",
+      "saving": "Saving…",
+      "error": "Could not save. Try again."
+    },
+    "schedule": {
+      "title": "Today’s jobs",
+      "empty": "No jobs today."
+    },
+    "requests": {
+      "title": "Job requests",
+      "empty": "No requests yet. New ones will appear here."
+    },
+    "reputation": {
+      "title": "Your reputation",
+      "empty": "No reviews yet",
+      "reviews": "{count} reviews",
+      "avg": "{avg} stars"
+    }
+  },
+  "customerOnboarding": {
+    "title": "Welcome",
+    "subtitle": "Three quick things (about 30 seconds).",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Your name",
+    "areaQuestion": "Where do you need work done?",
+    "useLocation": "Use my location",
+    "locating": "Finding your area…",
+    "locationDenied": "Location is off. Please tap your area.",
+    "locationFar": "You seem to be outside our service area. Please tap your area.",
+    "languageQuestion": "Which language?",
+    "continue": "Continue",
+    "saving": "Saving…",
+    "error": "Could not save. Try again.",
+    "nameRequired": "Please type your name.",
+    "areaRequired": "Please tap your area."
   }
 }

@@ -42,3 +42,10 @@ export function formatKarachiDate(date: Date, locale: "ur" | "en"): string {
     month: "short",
   }).format(date);
 }
+
+/** [start, end) of the Asia/Karachi calendar day containing `date`, as UTC instants. */
+export function karachiDayBounds(date: Date): { start: Date; end: Date } {
+  const { minuteOfDay } = karachiLocalParts(date);
+  const start = new Date(Math.floor(date.getTime() / 60_000) * 60_000 - minuteOfDay * 60_000);
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60_000) };
+}

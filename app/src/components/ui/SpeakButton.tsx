@@ -5,35 +5,90 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "./cn";
 
-/** Plays a pre-generated prompt. Renders nothing when there is no audio to play (docs/03 §4). */
-export function SpeakButton({ src, className }: { src?: string | null; className?: string }) {
-  const { t } = useI18n();
+const SPEECH_LANG = { ur: "ur-PK", en: "en-US" } as const;
+
+/** True when the browser has a speech voice for this language (Urdu voices are rare). */
+function hasVoice(lang: "ur" | "en") {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+  return window.speechSynthesis.getVoices().some((v) => v.lang.toLowerCase().startsWith(lang));
+}
+
+/**
+ * Plays a pre-generated prompt (`src`), or reads `text` aloud with the browser voice when there
+ * is no file. Renders nothing when neither can be spoken (docs/03 §4, docs/04 §2): the text and
+ * icons on screen always carry the meaning.
+ */
+export function SpeakButton({
+  src,
+  text,
+  className,
+}: {
+  src?: string | null;
+  text?: string | null;
+  className?: string;
+}) {
+  const { t, lang } = useI18n();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [broken, setBroken] = useState(false);
+  const [fileBroken, setFileBroken] = useState(false);
+  const [voice, setVoice] = useState(false);
 
-  useEffect(() => () => audioRef.current?.pause(), []);
+  // Voices load asynchronously in most browsers.
+  useEffect(() => {
+    if (!text) return;
+    const check = () => setVoice(hasVoice(lang));
+    check();
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.addEventListener("voiceschanged", check);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", check);
+  }, [text, lang]);
 
-  if (!src || broken) return null;
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    },
+    [],
+  );
+
+  const useFile = !!src && !fileBroken;
+  const useVoice = !useFile && !!text && voice;
+  if (!useFile && !useVoice) return null;
+
+  const stop = () => {
+    audioRef.current?.pause();
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setPlaying(false);
+  };
 
   const toggle = () => {
-    if (!audioRef.current) {
-      const audio = new Audio(src);
-      audio.addEventListener("ended", () => setPlaying(false));
-      audio.addEventListener("error", () => setBroken(true));
-      audioRef.current = audio;
-    }
-    const audio = audioRef.current;
     if (playing) {
-      audio.pause();
-      audio.currentTime = 0;
-      setPlaying(false);
-    } else {
-      audio.play().then(
-        () => setPlaying(true),
-        () => setBroken(true),
-      );
+      stop();
+      return;
     }
+    if (useFile) {
+      if (!audioRef.current) {
+        const audio = new Audio(src!);
+        audio.addEventListener("ended", () => setPlaying(false));
+        audio.addEventListener("error", () => setFileBroken(true));
+        audioRef.current = audio;
+      }
+      audioRef.current.play().then(
+        () => setPlaying(true),
+        () => setFileBroken(true),
+      );
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text!);
+    utterance.lang = SPEECH_LANG[lang];
+    utterance.onend = () => setPlaying(false);
+    utterance.onerror = () => setPlaying(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    setPlaying(true);
   };
 
   return (
