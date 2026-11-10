@@ -1,13 +1,20 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/AppShell";
 import { RoleChooser } from "@/components/landing/RoleChooser";
-import { getSession, homeFor } from "@/lib/auth/guards";
+import { Landing } from "@/components/landing/Landing";
+import { getSession, homeFor, type SessionUser } from "@/lib/auth/guards";
 import { getT } from "@/lib/i18n/server";
 
-/** Landing + role choice (Figma 01). */
+/** Public landing (UX Pilot design) for visitors; role choice for signed-in users without a role. */
 export default async function LandingPage() {
-  const [user, { t }] = await Promise.all([getSession(), getT()]);
+  // The public landing must render even if the database is unreachable (e.g. a fresh
+  // deploy without DATABASE_URL): treat a failed session lookup as signed out.
+  const [user, { t }] = await Promise.all([
+    getSession().catch((): SessionUser | null => null),
+    getT(),
+  ]);
   if (user?.role) redirect(homeFor(user.role));
+  if (!user) return <Landing t={t} />;
 
   return (
     <AppShell role={null} signedIn={!!user} wide>
