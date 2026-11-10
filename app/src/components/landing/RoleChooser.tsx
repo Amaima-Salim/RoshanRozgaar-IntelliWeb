@@ -41,7 +41,7 @@ export function RoleChooser({ mode }: { mode: "link" | "assign" }) {
         setError(true);
         return;
       }
-      router.replace(role === "worker" ? "/w/home" : "/c/request/new");
+      router.replace(role === "worker" ? "/w/onboarding" : "/c/onboarding");
       router.refresh();
     });
 
