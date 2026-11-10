@@ -60,6 +60,8 @@ const envSchema = z.object({
   GEMINI_API_KEY: optionalString,
   GROQ_API_KEY: optionalString,
   AI_TIMEOUT_MS: intWithDefault(8000, 500, 60000),
+  GEMINI_MODEL: optionalString.transform((v) => v ?? "gemini-flash-latest"),
+  GROQ_STT_MODEL: optionalString.transform((v) => v ?? "whisper-large-v3-turbo"),
 
   // No default fallback for an invalid value: a typo here must crash, not silently pick a mode.
   PAYMENTS_MODE: optionalString
@@ -163,6 +165,8 @@ export function loadConfig(env: Record<string, string | undefined>) {
       mode: e.AI_MODE,
       geminiApiKey: e.GEMINI_API_KEY,
       groqApiKey: e.GROQ_API_KEY,
+      geminiModel: e.GEMINI_MODEL,
+      groqSttModel: e.GROQ_STT_MODEL,
       timeoutMs: e.AI_TIMEOUT_MS,
     },
     payments: {

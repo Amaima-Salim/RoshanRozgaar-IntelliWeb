@@ -13,6 +13,15 @@ const DEMO_WORKER = "03000000010";
 test.beforeEach(() => resetDemoWorker());
 test.afterAll(() => resetDemoWorker());
 
+/** Signs in the demo worker and waits until onboarding is interactive (redirect + refresh done). */
+async function startOnboarding(page: Page) {
+  await signInWithDemoAccount(page, "worker", DEMO_WORKER);
+  await expect(page).toHaveURL(/\/w\/onboarding$/);
+  await page.locator("html[data-hydrated='true']").waitFor({ state: "attached" });
+  await expect(page.getByTestId("question")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+}
+
 async function tapThrough(page: Page) {
   await page.getByTestId("trade-electrician").click();
   await page.getByTestId("next").click();
@@ -164,4 +173,110 @@ test.describe("worker onboarding, tap only (O1)", () => {
       await expectAccessible(page);
     });
   }
+});
+
+// Voice-led onboarding with the fake microphone and recorded (fixture) transcripts.
+const OFF_URL = `http://localhost:${Number(process.env.E2E_PORT ?? 3200) + 1}`;
+
+async function speak(page: Page) {
+  await page.getByRole("button", { name: /Tap to speak/ }).click();
+  const accept = page.getByTestId("consent-accept");
+  if (await accept.isVisible().catch(() => false)) await accept.click();
+  await expect(page.getByRole("button", { name: /Listening/ })).toBeVisible();
+  await page.waitForTimeout(1500);
+  await page.getByRole("button", { name: /Listening/ }).click();
+}
+
+test.describe("worker onboarding, voice (fixtures)", () => {
+  test("voice answers pre-select the tiles; the worker confirms; no form shown", async ({
+    page,
+    baseURL,
+  }) => {
+    await setLanguage(page, baseURL!, "en");
+    await startOnboarding(page);
+    await expect(page.getByTestId("simulated-ai")).toBeVisible();
+
+    // Consent appears once, before the first mic use.
+    await page.getByRole("button", { name: /Tap to speak/ }).click();
+    await expect(page.getByTestId("voice-consent")).toBeVisible();
+    await page.getByTestId("consent-accept").click();
+    await expect(page.getByRole("button", { name: /Listening/ })).toBeVisible();
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: /Listening/ }).click();
+    await expect(page.getByTestId("heard")).toBeVisible();
+    await expect(page.getByTestId("trade-electrician")).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("next").click();
+
+    await speak(page); // years: "aath saal"
+    await expect(page.getByTestId("years-value")).toContainText("8");
+    await page.getByTestId("next").click();
+
+    await speak(page); // areas: F-7 + G-9
+    await expect(page.getByTestId("area-f-7")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("area-g-9")).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("next").click();
+
+    await speak(page); // rate: 1500 per visit
+    await expect(page.getByTestId("rate-1500")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("basis-per_visit")).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("next").click();
+
+    await speak(page); // schedule: Mon–Fri morning + afternoon
+    await expect(page.getByTestId("day-1")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("day-5")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("part-morning")).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("next").click();
+
+    await page.getByTestId("skip").click();
+    await expect(page.locator("input[type=text], textarea, form")).toHaveCount(0);
+    await page.getByTestId("save-profile").click();
+    await expect(page).toHaveURL(/\/w\/home$/);
+  });
+
+  test("declining the consent notice keeps the tap path working", async ({ page, baseURL }) => {
+    await setLanguage(page, baseURL!, "en");
+    await startOnboarding(page);
+    await page.getByRole("button", { name: /Tap to speak/ }).click();
+    await page.getByTestId("consent-decline").click();
+    await expect(page.getByTestId("voice-consent")).toHaveCount(0);
+    await page.getByTestId("trade-plumber").click();
+    await expect(page.getByTestId("next")).toBeEnabled();
+  });
+
+  test("AI endpoints refuse signed-out callers and customers", async ({ request, page }) => {
+    const body = { stepId: "trade", transcript: "electrician" };
+    expect((await request.post("/api/ai/extract-worker-profile", { data: body })).status()).toBe(
+      401,
+    );
+    await signInWithDemoAccount(page, "customer", "03000000001");
+    await expect(page).toHaveURL(/\/c\/request\/new$/);
+    expect(
+      (await page.request.post("/api/ai/extract-worker-profile", { data: body })).status(),
+    ).toBe(403);
+  });
+});
+
+test.describe("worker onboarding with AI_MODE=off", () => {
+  test.use({ baseURL: OFF_URL });
+
+  test("no AI affordances, and the tap path still completes", async ({ page, baseURL }) => {
+    await setLanguage(page, baseURL!, "en");
+    await startOnboarding(page);
+    await expect(page.getByTestId("question")).toBeVisible();
+    await expect(page.getByTestId("voice-box")).toHaveCount(0);
+    await expect(page.getByTestId("simulated-ai")).toHaveCount(0);
+    await tapThrough(page);
+    await page.getByTestId("save-profile").click();
+    await expect(page).toHaveURL(/\/w\/home$/);
+  });
+
+  test("AI endpoints report AI_UNAVAILABLE instead of failing silently", async ({ page }) => {
+    await startOnboarding(page);
+    await expect(page).toHaveURL(/\/w\/onboarding$/);
+    const res = await page.request.post("/api/ai/extract-worker-profile", {
+      data: { stepId: "trade", transcript: "electrician" },
+    });
+    expect(res.status()).toBe(503);
+    expect((await res.json()).error.code).toBe("AI_UNAVAILABLE");
+  });
 });

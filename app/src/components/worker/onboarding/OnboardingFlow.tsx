@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import type { WorkerProfileDraft } from "@/lib/ai/schemas";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +19,7 @@ import { useI18n } from "@/lib/i18n/client";
 import type { AreaOption } from "./describe";
 import { LiveProfile } from "./LiveProfile";
 import { ReadBack } from "./ReadBack";
+import { VoiceBox } from "./VoiceBox";
 import { AreasStep, PhotoStep, RateStep, ScheduleStep, TradeStep, YearsStep } from "./steps";
 
 const READBACK = STEP_IDS.length; // index of the read-back screen
@@ -31,9 +33,12 @@ const READBACK = STEP_IDS.length; // index of the read-back screen
 export function OnboardingFlow({
   initial,
   areas,
+  aiMode,
 }: {
   initial: ProfileAnswers;
   areas: AreaOption[];
+  /** `off` hides every AI affordance (docs/04 §1.2); the tap path is always complete. */
+  aiMode: "live" | "fixtures" | "off";
 }) {
   const { t, tKey, bi } = useI18n();
   const router = useRouter();
@@ -48,6 +53,19 @@ export function OnboardingFlow({
   const onReadback = index === READBACK;
   const step: StepId | null = onReadback ? null : STEP_IDS[index]!;
   const patch = (p: Partial<ProfileAnswers>) => setAnswers((a) => ({ ...a, ...p }));
+  // A spoken answer pre-selects only what was understood; unknown parts keep their old value.
+  const applyDraft = (d: WorkerProfileDraft) =>
+    setAnswers((a) => ({
+      ...a,
+      trade: d.trade ?? a.trade,
+      yearsExperience: d.yearsExperience ?? a.yearsExperience,
+      areaSlugs: d.areaSlugs.length ? d.areaSlugs : a.areaSlugs,
+      indicativeRatePkr: d.indicativeRatePkr ?? a.indicativeRatePkr,
+      rateBasis: d.rateBasis ?? a.rateBasis,
+      weekdays: d.weekdays.length ? d.weekdays : a.weekdays,
+      dayParts: d.dayParts.length ? d.dayParts : a.dayParts,
+    }));
+  const voiceStep = step && step !== "photo" && aiMode !== "off" ? step : null;
 
   // Move focus to the new question so screen readers announce it.
   useEffect(() => {
@@ -252,6 +270,10 @@ export function OnboardingFlow({
           </div>
           <SpeakButton text={question} />
         </div>
+
+        {voiceStep ? (
+          <VoiceBox stepId={voiceStep} fixtures={aiMode === "fixtures"} onDraft={applyDraft} />
+        ) : null}
 
         {step === "trade" ? <TradeStep answers={answers} onChange={patch} /> : null}
         {step === "years" ? <YearsStep answers={answers} onChange={patch} /> : null}

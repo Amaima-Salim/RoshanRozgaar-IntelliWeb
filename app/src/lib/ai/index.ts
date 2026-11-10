@@ -1,0 +1,125 @@
+/**
+ * AI task functions (docs/04 §1): provider-abstracted, mode-aware, time-boxed and validated.
+ * Every failure becomes an AiUnavailableError (or an empty draft); the UI then uses taps.
+ * Names, phones, emails and addresses never reach a provider.
+ */
+import "server-only";
+import { getConfig } from "@/lib/config";
+import type { StepId } from "@/lib/domain/worker-profile";
+import { log } from "@/lib/log";
+import { AiUnavailableError } from "./errors";
+import { FIXTURE_TRANSCRIPTS } from "./fixtures";
+import { EXTRACT_SYSTEM, extractUserPrompt } from "./prompts";
+import { geminiJson } from "./providers/gemini";
+import { groqTranscribe } from "./providers/groq";
+import type { AiProviders } from "./providers/types";
+import { extractByRules, type AllowedArea } from "./rules";
+import {
+  emptyDraft,
+  restrictToStep,
+  workerProfileDraftSchema,
+  type Transcript,
+  type WorkerProfileDraft,
+} from "./schemas";
+
+export { AiUnavailableError } from "./errors";
+
+/** Test seam: replaces the network providers (failure injection, contract tests). */
+let override: AiProviders | null = null;
+export function __setAiProvidersForTest(p: AiProviders | null) {
+  override = p;
+}
+
+function liveProviders(): AiProviders {
+  const { ai } = getConfig();
+  return {
+    async transcribe(audio) {
+      if (!ai.groqApiKey) throw new AiUnavailableError("no_key");
+      return groqTranscribe(audio, {
+        apiKey: ai.groqApiKey,
+        model: ai.groqSttModel,
+        timeoutMs: ai.timeoutMs,
+      });
+    },
+    async extractWorkerProfile({ stepId, transcript, allowedAreas }) {
+      if (!ai.geminiApiKey) throw new AiUnavailableError("no_key");
+      return geminiJson(EXTRACT_SYSTEM, extractUserPrompt(stepId, transcript, allowedAreas), {
+        apiKey: ai.geminiApiKey,
+        model: ai.geminiModel,
+        timeoutMs: ai.timeoutMs,
+      });
+    },
+  };
+}
+
+export type AiResult<T> = T & { simulated: boolean };
+
+/** Speech to text. `fixtures` replays a recorded transcript for the step; `off` refuses. */
+export async function transcribe(
+  audio: { bytes: Uint8Array; mime: string },
+  opts: { stepId?: StepId },
+): Promise<AiResult<{ transcript: Transcript }>> {
+  const { mode } = getConfig().ai;
+  if (mode === "off") throw new AiUnavailableError("off");
+  if (mode === "fixtures") {
+    const transcript = opts.stepId ? FIXTURE_TRANSCRIPTS[opts.stepId] : undefined;
+    if (!transcript || !transcript.text) throw new AiUnavailableError("invalid");
+    return { transcript, simulated: true };
+  }
+  const providers = override ?? liveProviders();
+  try {
+    const transcript = await providers.transcribe(audio, opts);
+    if (!transcript.text.trim()) throw new AiUnavailableError("invalid");
+    return { transcript, simulated: false };
+  } catch (err) {
+    if (err instanceof AiUnavailableError) throw err;
+    log.warn("ai.transcribe_failed", { error: err });
+    throw new AiUnavailableError("provider");
+  }
+}
+
+const hasAnything = (d: WorkerProfileDraft) =>
+  d.trade !== null ||
+  d.yearsExperience !== null ||
+  d.areaSlugs.length > 0 ||
+  d.indicativeRatePkr !== null ||
+  d.rateBasis !== null ||
+  d.weekdays.length > 0 ||
+  d.dayParts.length > 0;
+
+/**
+ * Worker profile extraction for ONE step (AI-02). Rules run first (offline, deterministic);
+ * the LLM is asked only when rules found nothing and only in live mode. Unknown stays empty.
+ */
+export async function extractWorkerProfile(input: {
+  stepId: StepId;
+  transcript: string;
+  allowedAreas: readonly AllowedArea[];
+}): Promise<AiResult<{ draft: WorkerProfileDraft; source: "rules" | "llm" | "none" }>> {
+  const { mode } = getConfig().ai;
+  if (mode === "off") throw new AiUnavailableError("off");
+  const simulated = mode === "fixtures";
+
+  const byRules = extractByRules(input.stepId, input.transcript, input.allowedAreas);
+  if (hasAnything(byRules) || simulated) {
+    return { draft: byRules, source: hasAnything(byRules) ? "rules" : "none", simulated };
+  }
+
+  const providers = override ?? liveProviders();
+  try {
+    const raw = await providers.extractWorkerProfile(input);
+    const parsed = workerProfileDraftSchema.safeParse(raw);
+    if (!parsed.success) return { draft: emptyDraft(), source: "none", simulated };
+    const allowed = new Set(input.allowedAreas.map((a) => a.slug));
+    const checked = restrictToStep(input.stepId, {
+      ...parsed.data,
+      // Only areas that actually exist: a made-up slug is dropped, not trusted.
+      areaSlugs: [...new Set(parsed.data.areaSlugs.filter((s) => allowed.has(s)))],
+    });
+    return { draft: checked, source: hasAnything(checked) ? "llm" : "none", simulated };
+  } catch (err) {
+    // Provider down, timed out or rate limited: the rules found nothing, so ask again by tap.
+    if (!(err instanceof AiUnavailableError)) log.warn("ai.extract_failed", { error: err });
+    return { draft: emptyDraft(), source: "none", simulated };
+  }
+}

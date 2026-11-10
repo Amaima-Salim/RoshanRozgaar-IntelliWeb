@@ -2,6 +2,7 @@ import { asc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { OnboardingFlow } from "@/components/worker/onboarding/OnboardingFlow";
 import { requireRolePage } from "@/lib/auth/guards";
+import { getConfig } from "@/lib/config";
 import { db } from "@/lib/db/client";
 import { areas } from "@/lib/db/schema";
 import { getT } from "@/lib/i18n/server";
@@ -24,5 +25,5 @@ export default async function WorkerOnboardingPage({ searchParams }: PageProps<"
   ]);
   const editing = (await searchParams).edit === "1";
   if (profile.onboardingComplete && !editing) redirect("/w/home");
-  return <OnboardingFlow initial={profile.answers} areas={areaRows} />;
+  return <OnboardingFlow initial={profile.answers} areas={areaRows} aiMode={getConfig().ai.mode} />;
 }
