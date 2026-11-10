@@ -10,6 +10,7 @@ import {
   type RankInput,
 } from "@/lib/domain/ranking";
 import { RANKING_WEIGHTS } from "@/lib/domain/ranking-config";
+import { parseKarachiLocal, startForChip } from "@/lib/domain/time";
 
 describe("geo", () => {
   it("Haversine: zero for the same point, ~111 km per degree of latitude", () => {
@@ -257,5 +258,23 @@ describe("reasons (honest and bilingual-ready)", () => {
       pkr: 1000,
       fit: "no_budget",
     });
+  });
+});
+
+describe("when chips", () => {
+  const NOW = new Date("2030-01-01T06:00:00Z"); // 11:00 in Karachi
+  it("this evening is 18:00 Karachi today", () => {
+    expect(startForChip("evening", NOW).toISOString()).toBe("2030-01-01T13:00:00.000Z");
+  });
+  it("this evening after 18:00 becomes half an hour from now", () => {
+    const late = new Date("2030-01-01T14:00:00Z"); // 19:00 Karachi
+    expect(startForChip("evening", late).getTime()).toBe(late.getTime() + 30 * 60_000);
+  });
+  it("tomorrow is 10:00 Karachi", () => {
+    expect(startForChip("tomorrow", NOW).toISOString()).toBe("2030-01-02T05:00:00.000Z");
+  });
+  it("parses the picker value as Karachi wall time and rejects junk", () => {
+    expect(parseKarachiLocal("2030-01-07T10:00")?.toISOString()).toBe("2030-01-07T05:00:00.000Z");
+    expect(parseKarachiLocal("tomorrow")).toBeNull();
   });
 });
