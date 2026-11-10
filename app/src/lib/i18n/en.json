@@ -433,6 +433,50 @@
     "jobsDone": "{count} jobs finished on Roshan Rozgar",
     "message": "Message",
     "messageSoon": "Messaging opens in the next update.",
-    "notFound": "This worker is not available."
+    "notFound": "This worker is not available.",
+    "messageNeedsRequest": "Open this worker from your results to message them."
+  },
+  "chat": {
+    "title": "Messages",
+    "empty": "No conversations yet.",
+    "emptyCustomer": "Pick a worker from your results and press Message.",
+    "emptyWorker": "When a customer messages you, it appears here.",
+    "with": "Chat with {name}",
+    "back": "All messages",
+    "jobFor": "{trade} · {when}",
+    "placeholder": "Type a message",
+    "send": "Send",
+    "sending": "Sending…",
+    "failed": "Not sent",
+    "retry": "Tap to retry",
+    "you": "You",
+    "translated": "Translated",
+    "original": "Original: {text}",
+    "loadError": "Could not refresh. Trying again.",
+    "empty2": "Say hello, or use a quick reply.",
+    "noOpen": "This conversation is closed.",
+    "quickTitle": "Quick replies",
+    "aiLabel": "AI translation — please check",
+    "details": "Job details",
+    "detailsTrade": "Work",
+    "detailsWhen": "When",
+    "detailsFor": "Customer's note",
+    "detailsRate": "Usual price: {price}",
+    "detailsNoNote": "No note",
+    "startedLabel": "Conversation started",
+    "quick": {
+      "when": "When can you come?",
+      "price": "What is your price?",
+      "ok": "OK",
+      "thanks": "Thank you",
+      "canCome": "I can come at that time.",
+      "details": "Please tell me more about the problem."
+    },
+    "errors": {
+      "notEligible": "This worker is not free for your request any more.",
+      "requestClosed": "This request is closed.",
+      "start": "Could not start the chat. Try again."
+    },
+    "start": "Message"
   }
 }

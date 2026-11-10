@@ -1,5 +1,4 @@
-import { PhasePlaceholder } from "@/components/placeholder/PhasePlaceholder";
-
+import { ChatPage } from "@/components/chat/ChatPage";
 export default function Page() {
-  return <PhasePlaceholder role="customer" />;
+  return <ChatPage role="customer" />;
 }

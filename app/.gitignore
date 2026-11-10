@@ -17,7 +17,6 @@ next-env.d.ts
 
 # secrets — never commit (implementation.md §6.8, docs/07 §7)
 .env*
-!.env.example
 client_secret_*.json
 *.pem
 .env.local
@@ -29,3 +28,4 @@ npm-debug.log*
 
 # Playwright server-ordering marker
 .e2e-ready-*
+.claude/worktrees/

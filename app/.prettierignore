@@ -5,3 +5,4 @@ test-results
 playwright-report
 src/lib/db/migrations/meta
 package-lock.json
+.claude/

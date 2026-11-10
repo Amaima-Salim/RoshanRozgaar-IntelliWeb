@@ -2,6 +2,7 @@ import { and, avg, count, eq } from "drizzle-orm";
 import { ArrowLeft, MessageCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StartChatButton } from "@/components/chat/StartChatButton";
 import { GuideButtons } from "@/components/guide/GuideButtons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -143,17 +144,21 @@ export default async function WorkerProfilePage({
         </p>
       </section>
 
-      <div className="flex flex-col gap-2">
-        <Button
-          size="lg"
-          fullWidth
-          disabled
-          icon={<MessageCircle aria-hidden />}
-          label={t("workerProfile.message")}
-          disabledReason={t("workerProfile.messageSoon")}
-          data-testid="message-worker"
-        />
-      </div>
+      {requestId ? (
+        <StartChatButton requestId={requestId} workerId={id} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Button
+            size="lg"
+            fullWidth
+            disabled
+            icon={<MessageCircle aria-hidden />}
+            label={t("workerProfile.message")}
+            disabledReason={t("workerProfile.messageNeedsRequest")}
+            data-testid="message-worker"
+          />
+        </div>
+      )}
     </article>
   );
 }

@@ -69,7 +69,7 @@ test.describe("customer discovery", () => {
     await page.getByTestId("view-worker").first().click();
     await expect(page.getByTestId("worker-profile")).toBeVisible();
     await expect(page.getByTestId("typical-price")).toContainText("Rs");
-    await expect(page.getByTestId("message-worker")).toBeDisabled();
+    await expect(page.getByTestId("message-worker")).toBeEnabled();
     await expectAccessible(page);
   });
 
