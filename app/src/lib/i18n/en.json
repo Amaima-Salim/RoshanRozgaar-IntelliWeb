@@ -1,0 +1,146 @@
+{
+  "app": {
+    "name": "Roshan Rozgar",
+    "tagline": "Skilled workers near you, when you need them",
+    "skipToContent": "Skip to content"
+  },
+  "language": {
+    "toggleLabel": "Change language",
+    "switchTo": "اردو",
+    "current": "English"
+  },
+  "nav": {
+    "main": "Main",
+    "work": "Work",
+    "messages": "Messages",
+    "profile": "Profile",
+    "find": "Find",
+    "bookings": "Bookings",
+    "notifications": "Notifications",
+    "back": "Back",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "account": "Account"
+  },
+  "landing": {
+    "title": "Find a trusted worker nearby",
+    "subtitle": "Electricians, plumbers, AC technicians, carpenters and mechanics in Islamabad and Rawalpindi.",
+    "chooseRole": "Who are you?",
+    "customerTitle": "I need a worker",
+    "customerHint": "Describe the problem by voice, text or a photo",
+    "workerTitle": "I am a worker",
+    "workerHint": "Make your profile by speaking — no forms",
+    "continueAs": "Continue",
+    "roleSaving": "Saving…",
+    "roleError": "Could not save your choice. Try again.",
+    "signedInAs": "Signed in as {name}",
+    "pickRoleOnce": "Choose once. You can't change this later."
+  },
+  "login": {
+    "title": "Sign in",
+    "workerTab": "Worker",
+    "customerTab": "Customer",
+    "phoneLabel": "Phone number (demo)",
+    "phoneHint": "Type your mobile number, e.g. 0300 0000010",
+    "sendCode": "Get code",
+    "sending": "Sending…",
+    "codeLabel": "Enter the 6-digit code",
+    "codeHintDemo": "Demo code: {code}",
+    "verify": "Sign in",
+    "verifying": "Checking…",
+    "changeNumber": "Change number",
+    "resendIn": "Get a new code in {seconds}s",
+    "resend": "Get a new code",
+    "demoAccounts": "Demo accounts",
+    "demoAccountsHint": "One tap — fictional accounts for the demo",
+    "demoCustomer": "Customer",
+    "demoWorker": "Worker (not onboarded)",
+    "notVerification": "Sign-in is not identity verification.",
+    "keypadDelete": "Delete",
+    "keypadClear": "Clear",
+    "signedIn": "Signed in",
+    "errors": {
+      "INVALID_PHONE": "That is not a Pakistani mobile number (03XX XXXXXXX).",
+      "RESEND_TOO_SOON": "Please wait before asking for another code.",
+      "OTP_NOT_FOUND": "Ask for a code first.",
+      "OTP_EXPIRED": "This code has expired. Get a new one.",
+      "INVALID_OTP": "Wrong code. {attemptsLeft} tries left.",
+      "TOO_MANY_ATTEMPTS": "Too many wrong tries. Get a new code.",
+      "RATE_LIMITED": "Too many requests. Wait a minute and try again.",
+      "NETWORK": "No connection to the server. Check your internet and try again.",
+      "UNKNOWN": "Something went wrong. Try again."
+    }
+  },
+  "badge": {
+    "free": "Free",
+    "engaged": "Engaged",
+    "ai": "AI summary",
+    "demo": "Demo data",
+    "testMode": "Test mode"
+  },
+  "banner": {
+    "demoLogin": "Demo login — no real SMS is sent.",
+    "testMode": "Test mode — no real money moves.",
+    "offline": "No internet — this needs a connection."
+  },
+  "mic": {
+    "idle": "Tap to speak",
+    "listening": "Listening… tap to stop",
+    "processing": "Understanding…",
+    "error": "Couldn't hear you — try again or tap an option"
+  },
+  "speak": {
+    "play": "Listen",
+    "stop": "Stop"
+  },
+  "state": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "emptyTitle": "Nothing here yet",
+    "errorTitle": "Something went wrong",
+    "dismiss": "Dismiss"
+  },
+  "status": {
+    "pending": "Waiting",
+    "success": "Done",
+    "failed": "Failed"
+  },
+  "placeholder": {
+    "title": "Coming next",
+    "body": "This screen is built in a later phase. You are signed in as a {role}.",
+    "worker": "worker",
+    "customer": "customer"
+  },
+  "workerCard": {
+    "noReviews": "No reviews yet",
+    "rating": "{rating}★ from {count} customers",
+    "kmAway": "{km} km away",
+    "freeAt": "Free at {time}",
+    "from": "From {price}"
+  },
+  "trades": {
+    "electrician": "Electrician",
+    "plumber": "Plumber",
+    "ac_technician": "AC technician",
+    "carpenter": "Carpenter",
+    "mechanic": "Mechanic"
+  },
+  "errors": {
+    "UNAUTHENTICATED": "Please sign in again.",
+    "FORBIDDEN": "You can't do that.",
+    "VALIDATION": "Some details are missing or wrong.",
+    "NOT_FOUND": "Not found.",
+    "CONFLICT_BOOKED": "Someone else booked this worker a moment ago. Nothing was confirmed or charged.",
+    "CONFLICT_STATE": "This changed in the meantime. Here is the latest.",
+    "RATE_LIMITED": "Too many requests. Wait a minute and try again.",
+    "AI_UNAVAILABLE": "The assistant is not available. You can tap the options instead.",
+    "PAYLOAD_TOO_LARGE": "That file is too large.",
+    "EMAIL_SEND_FAILED": "We could not send the email. Try another way to sign in.",
+    "PAYMENT_UNAVAILABLE": "Payment is not available right now.",
+    "PAYMENT_VERIFICATION_FAILED": "The payment could not be verified.",
+    "INTERNAL": "Something went wrong on our side."
+  },
+  "dev": {
+    "galleryTitle": "Component gallery (dev only)"
+  }
+}

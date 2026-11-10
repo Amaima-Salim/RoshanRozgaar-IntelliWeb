@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (docs/11 §2). Names mirror the Figma variables (RR Color, RR Size);
+ * @theme exposes each as a CSS custom property (e.g. --color-primary) and a utility.
+ *
+ * PROVISIONAL: the Figma connector was unreachable in Phase 0 (MCP plan limit).
+ * Values marked "doc" come from docs/11; every other value is a placeholder chosen
+ * to pass WCAG AA contrast, to be replaced with the Figma variable values
+ * (DECISIONS.md D-40). Never hard-code a value that has a token.
+ */
+@theme {
+  /* Breakpoints: phone 360, tablet 768, desktop 1280 (docs/03 §2, doc). */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 22.5rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-xl: 80rem;
+
+  --color-*: initial;
+  --color-primary: #0f6b3e; /* doc */
+  --color-primary-strong: #0a522f;
+  --color-primary-soft: #e3f1e8;
+  --color-accent: #f2a900; /* doc */
+  --color-accent-soft: #fff3d1;
+  --color-bg: #ffffff;
+  --color-canvas: #f5f6f3;
+  --color-surface: #ffffff;
+  --color-border: #d7ddd7;
+  --color-text: #17201b;
+  --color-text-muted: #56615a;
+  --color-on-primary: #ffffff;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fce9e7;
+  --color-info: #1d5ea8;
+  --color-info-soft: #e6effa;
+  --color-map: #e8eee4;
+  --color-map-road: #ffffff;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  /* RR Size: radius/sm 8 · md 12 · lg 16 · xl 24 · pill (doc) */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 9999px;
+
+  /* size/touch-min 48, size/button-lg 64, layout/content-max 1200 (doc) */
+  --spacing-touch: 3rem;
+  --spacing-button-lg: 4rem;
+  --container-content: 75rem;
+
+  --font-ur-display: "Noto Nastaliq Urdu", "Noto Sans Arabic", serif;
+  --font-ur: "Noto Sans Arabic", "Inter", sans-serif;
+  --font-en: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-en);
+    background: var(--color-canvas);
+    min-height: 100dvh;
+  }
+
+  /* Urdu UI/body text uses Noto Sans Arabic; Nastaliq only for headings (docs/03 §3). */
+  html[lang="ur"] body {
+    font-family: var(--font-ur);
+    line-height: 1.7;
+  }
+
+  /* Nastaliq has very tall ascenders/descenders: its line height must win over
+     text-size utilities, or lines collide (docs/03 §3: ≥ 1.9). */
+  html[lang="ur"] :is(h1, h2, .ur-display) {
+    font-family: var(--font-ur-display);
+    line-height: 2.1 !important;
+  }
+
+  /* Numbers always in Inter with Western digits, never mirrored (docs/03 §3). */
+  .num {
+    font-family: var(--font-en);
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+    direction: ltr;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
