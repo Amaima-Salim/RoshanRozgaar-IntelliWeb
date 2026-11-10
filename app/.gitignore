@@ -1,0 +1,27 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
+# next.js
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets — never commit (implementation.md §6.8, docs/07 §7)
+.env*
+!.env.example
+client_secret_*.json
+*.pem
+
+# misc
+.DS_Store
+npm-debug.log*
+.vercel
