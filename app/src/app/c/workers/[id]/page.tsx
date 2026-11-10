@@ -3,12 +3,14 @@ import { ArrowLeft, MessageCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StartChatButton } from "@/components/chat/StartChatButton";
+import { WorkerTrustPanel } from "@/components/trust/WorkerTrustPanel";
+import { loadWorkerTrust } from "@/lib/trust/reputation";
 import { GuideButtons } from "@/components/guide/GuideButtons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { requireRolePage } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
-import { areas, jobs, users, workerProfiles, workerReputation } from "@/lib/db/schema";
+import { areas, jobs, users, workerProfiles } from "@/lib/db/schema";
 import { formatPkr } from "@/lib/i18n/format";
 import { getT } from "@/lib/i18n/server";
 
@@ -41,13 +43,9 @@ export default async function WorkerProfilePage({
       basis: workerProfiles.rateBasis,
       areaSlugs: workerProfiles.areaSlugs,
       isDemo: workerProfiles.isSeeded,
-      reviewCount: workerReputation.reviewCount,
-      avgStars: workerReputation.avgStars,
-      jobsCompleted: workerReputation.jobsCompleted,
     })
     .from(workerProfiles)
     .innerJoin(users, eq(users.id, workerProfiles.userId))
-    .leftJoin(workerReputation, eq(workerReputation.workerId, workerProfiles.userId))
     .where(and(eq(workerProfiles.userId, id), eq(workerProfiles.onboardingStatus, "complete")));
   if (!w || !w.trade || w.rate === null || w.years === null) notFound();
 
@@ -66,7 +64,8 @@ export default async function WorkerProfilePage({
     typeof q.request === "string" && /^[0-9a-f-]{36}$/.test(q.request) ? q.request : null;
   const primary = lang === "ur" && w.nameUr ? w.nameUr : w.name;
   const secondary = lang === "ur" ? w.name : w.nameUr;
-  const hasReviews = (w.reviewCount ?? 0) > 0 && w.avgStars !== null;
+  const trust = await loadWorkerTrust(id);
+  const hasReviews = trust.stats.reviewCount > 0 && trust.stats.avgStars !== null;
 
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-6" data-testid="worker-profile">
@@ -103,7 +102,10 @@ export default async function WorkerProfilePage({
           <span className="inline-flex items-center gap-1 rounded-pill bg-canvas px-3 py-1">
             <Star aria-hidden className="size-4 text-accent" />
             {hasReviews
-              ? t("workerCard.rating", { rating: w.avgStars!.toFixed(1), count: w.reviewCount! })
+              ? t("workerCard.rating", {
+                  rating: trust.stats.avgStars!.toFixed(1),
+                  count: trust.stats.reviewCount,
+                })
               : t("workerCard.noReviews")}
           </span>
           {w.isDemo ? <Badge kind="demo" /> : null}
@@ -136,13 +138,7 @@ export default async function WorkerProfilePage({
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5">
-        <h2 className="text-lg font-semibold">{t("workerProfile.reputation")}</h2>
-        {hasReviews ? null : <p className="text-text-muted">{t("workerProfile.noReviews")}</p>}
-        <p className="text-text-muted">
-          {t("workerProfile.jobsDone", { count: w.jobsCompleted ?? 0 })}
-        </p>
-      </section>
+      <WorkerTrustPanel trust={trust} />
 
       {requestId ? (
         <StartChatButton requestId={requestId} workerId={id} />

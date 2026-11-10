@@ -4,6 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AvailabilityToggle } from "@/components/worker/AvailabilityToggle";
+import { ImproveHint } from "@/components/trust/ImproveHint";
+import { loadWorkerTrust } from "@/lib/trust/reputation";
 import { requireRolePage } from "@/lib/auth/guards";
 import { expireStale } from "@/lib/booking/expiry";
 import { db } from "@/lib/db/client";
@@ -80,6 +82,7 @@ export default async function WorkerHomePage() {
   ]);
   const engagedNow = !!nextJob && nextJob.startAt <= now;
   const name = lang === "ur" ? (user.nameUr ?? user.name) : user.name;
+  const trust = await loadWorkerTrust(user.id);
   const hasReviews = !!reputation && reputation.reviewCount > 0 && reputation.avgStars !== null;
 
   return (
@@ -135,6 +138,17 @@ export default async function WorkerHomePage() {
             ) : (
               <Empty testId="reputation-empty">{t("workerHome.reputation.empty")}</Empty>
             )}
+            <p className="num text-text-muted" data-testid="reputation-jobs">
+              {t("workerProfile.jobsDone", { count: trust.stats.jobsCompleted })}
+            </p>
+            <ImproveHint stats={trust.stats} />
+            <Link
+              href="/w/profile"
+              className="inline-flex min-h-touch items-center font-medium text-primary underline"
+              data-testid="reputation-details"
+            >
+              {t("trust.worker.title")}
+            </Link>
           </Card>
         </div>
         <Card title={t("workerHome.requests.title")} icon={<Inbox />}>

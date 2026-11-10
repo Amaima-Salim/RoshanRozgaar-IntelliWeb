@@ -114,6 +114,8 @@ export function ResultsView({ requestId, trade, result, nameUr }: Props) {
             rating={c.avgStars === null ? null : { avg: c.avgStars, count: c.reviewCount }}
             distanceKm={c.distanceKm}
             freeAt={start}
+            jobsCompleted={c.jobsCompleted}
+            bestSignal={c.bestSignal}
             isSeeded={c.isDemo}
             className="border-0 p-0"
           />

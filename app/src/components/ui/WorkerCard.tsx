@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MapPin, Star } from "lucide-react";
+import { BadgeCheck, Clock, MapPin, Star } from "lucide-react";
 import { formatKarachiTime } from "@/lib/domain/time";
 import { formatPkr } from "@/lib/i18n/format";
 import { useI18n } from "@/lib/i18n/client";
@@ -16,6 +16,13 @@ export type WorkerCardProps = {
   rating: { avg: number; count: number } | null;
   distanceKm: number;
   freeAt: Date;
+  /** Jobs finished through the app; shown only when above zero. */
+  jobsCompleted?: number;
+  /** Strongest tap signal with enough answers (D-58), e.g. 92% on time. */
+  bestSignal?: {
+    signal: "onTime" | "quality" | "fairPrice" | "respectful";
+    percent: number;
+  } | null;
   isSeeded?: boolean;
   className?: string;
 };
@@ -29,6 +36,8 @@ export function WorkerCard({
   rating,
   distanceKm,
   freeAt,
+  jobsCompleted,
+  bestSignal,
   isSeeded,
   className,
 }: WorkerCardProps) {
@@ -75,6 +84,20 @@ export function WorkerCard({
             <MapPin aria-hidden className="size-4 text-primary" />
             {t("workerCard.kmAway", { km: distanceKm.toFixed(1) })}
           </li>
+          {jobsCompleted ? (
+            <li className="inline-flex items-center gap-1 rounded-pill bg-canvas px-2.5 py-1">
+              <BadgeCheck aria-hidden className="size-4 text-primary" />
+              {t("workerProfile.jobsDone", { count: jobsCompleted })}
+            </li>
+          ) : null}
+          {bestSignal ? (
+            <li
+              className="inline-flex items-center gap-1 rounded-pill bg-canvas px-2.5 py-1"
+              data-testid="card-signal"
+            >
+              {t(`trust.signal.${bestSignal.signal}`, { pct: bestSignal.percent })}
+            </li>
+          ) : null}
           {isSeeded ? (
             <li>
               <Badge kind="demo" />

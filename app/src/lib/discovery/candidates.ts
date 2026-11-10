@@ -1,3 +1,10 @@
+import {
+  SIGNALS,
+  readRates,
+  signalPercent,
+  type Signal,
+  type SignalRates,
+} from "@/lib/domain/trust";
 import "server-only";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -34,6 +41,9 @@ export type PublicCandidate = {
   rateBasis: string;
   reviewCount: number;
   avgStars: number | null;
+  jobsCompleted: number;
+  /** The strongest tap signal with enough answers, for the card (BR-P6: never shown for tiny samples). */
+  bestSignal: { signal: Signal; percent: number } | null;
   /** Rounded to about 500 m; the exact base point never leaves the server (docs/07). */
   approx: { lat: number; lng: number };
   isDemo: boolean;
@@ -81,6 +91,8 @@ export async function findCandidates(
       isDemo: workerProfiles.isSeeded,
       reviewCount: workerReputation.reviewCount,
       avgStars: workerReputation.avgStars,
+      jobsCompleted: workerReputation.jobsCompleted,
+      signalRates: workerReputation.signalRates,
     })
     .from(workerProfiles)
     .innerJoin(users, eq(users.id, workerProfiles.userId))
@@ -133,6 +145,8 @@ export async function findCandidates(
       rateBasis: r.basis ?? "per_visit",
       reviewCount: r.reviewCount ?? 0,
       avgStars: r.reviewCount ? r.avgStars : null,
+      jobsCompleted: r.jobsCompleted ?? 0,
+      bestSignal: bestSignal(readRates(r.signalRates)),
       approx: roundPublicPoint({ lat: r.baseLat, lng: r.baseLng }),
       isDemo: r.isDemo,
     });
@@ -162,4 +176,13 @@ export async function findCandidates(
           widerRadiusKm: radiusKm < WIDEN_RADIUS_KM ? WIDEN_RADIUS_KM : null,
         },
   };
+}
+
+function bestSignal(rates: SignalRates): { signal: Signal; percent: number } | null {
+  let best: { signal: Signal; percent: number } | null = null;
+  for (const signal of SIGNALS) {
+    const percent = signalPercent(rates[signal]);
+    if (percent !== null && (!best || percent > best.percent)) best = { signal, percent };
+  }
+  return best;
 }

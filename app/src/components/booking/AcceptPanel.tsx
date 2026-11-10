@@ -206,6 +206,8 @@ export function AcceptPanel({
                           }
                           distanceKm={c.distanceKm}
                           freeAt={start}
+                          jobsCompleted={c.jobsCompleted}
+                          bestSignal={c.bestSignal}
                           isSeeded={c.isDemo}
                         />
                       </Link>
