@@ -142,7 +142,7 @@ export const WORKERS: SeedWorker[] = [
     available: true,
     schedule: "long",
     baseOffsetKm: { north: -12.2, east: 6.9 }, // ≈ 14 km from G-9: outside the 10 km radius
-    edgeCase: "1: excellent ratings but ~14 km away (reviews arrive in Phase 6)",
+    edgeCase: "1: excellent ratings but ~14 km away",
   },
   {
     key: "w-elec-2",
@@ -194,6 +194,7 @@ export const WORKERS: SeedWorker[] = [
     areas: ["satellite-town", "saddar-rwp"],
     available: true,
     schedule: "long",
+    edgeCase: "5: mixed reviews (punctual but pricey)",
   },
   // ── Plumbers ──
   {

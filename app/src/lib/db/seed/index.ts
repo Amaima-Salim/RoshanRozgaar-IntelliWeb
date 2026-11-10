@@ -18,6 +18,7 @@ import {
   workerProfiles,
   workerSchedule,
 } from "../schema";
+import { seedReviews } from "./reviews";
 import {
   AREAS,
   DEMO_CUSTOMERS,
@@ -277,6 +278,8 @@ export async function seed(db: Db) {
       .values({ jobId: ids.job, fromStatus: null, toStatus: "confirmed", actorId: ids.customer });
     summary.push(`  edge case 3 → ${worker.name} has a confirmed job until ${endAt.toISOString()}`);
   });
+
+  summary.push(...(await seedReviews(db, seedUuid)));
 
   const counts = await db.execute<{ trade: string; n: number }>(
     sql`select trade, count(*)::int as n from worker_profiles where is_seeded group by trade order by trade`,

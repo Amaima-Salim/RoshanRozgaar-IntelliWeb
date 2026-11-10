@@ -314,3 +314,16 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
   ranges on the app's own port. Production trusts `APP_URL` only. A foreign origin is still refused.
 - **Still true:** the per-IP limit of 5 code requests per minute applies to the demo accounts too (each click is one
   send plus one verify), so a sixth click inside a minute shows "too many requests". That is the limit working.
+
+### D-58 — Phase 6 choices (trust and reviews)
+
+- **No schema change.** `reviews` and `worker_reputation` already existed. Reputation is recomputed from source rows
+  (reviews, completed jobs) with the reputation row locked, in the review transaction and on confirm-complete.
+- **Bayesian score:** C = 3 pseudo-reviews at prior mean 3.5 (`ranking-config.ts`), stored as `bayes_stars`.
+- **Signal percentages** show only with at least 3 answers per signal; "how to improve" uses the weakest signal under 80%.
+- **AI-06** is a draft the customer edits or removes; the server re-checks tags against the enum and the client can only
+  raise `flagged`. **AI-07** runs after commit, every number (digits, Urdu digits, number words) must be in the data and
+  no verification claim is allowed, else the plain data template shows without an AI label.
+- **Flagged-review policy (default, final policy still to be confirmed by the team):** stars and signals count, the flag
+  is stored, the comment is hidden from the public list and the AI summary. Seeded reviews are counted and labelled Demo.
+- **Seed:** 45 completed jobs with reviews through the real request→job chain; edge 1 excellent, edge 5 mixed.
