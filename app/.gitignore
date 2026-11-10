@@ -20,8 +20,12 @@ next-env.d.ts
 !.env.example
 client_secret_*.json
 *.pem
+.env.local
 
 # misc
 .DS_Store
 npm-debug.log*
 .vercel
+
+# Playwright server-ordering marker
+.e2e-ready-*

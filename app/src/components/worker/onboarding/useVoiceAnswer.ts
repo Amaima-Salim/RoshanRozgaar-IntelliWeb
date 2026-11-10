@@ -100,18 +100,10 @@ export function useVoiceAnswer(opts: {
     alive.current = true;
     return () => {
       alive.current = false;
-      recorder.current?.state === "recording" && recorder.current.stop();
+      if (recorder.current?.state === "recording") recorder.current.stop();
       cleanup();
     };
   }, [cleanup]);
-
-  // A new step starts clean.
-  useEffect(() => {
-    setState("idle");
-    setMessageKey(null);
-    setHeard(null);
-    setSimulated(false);
-  }, [stepId]);
 
   const fail = useCallback((key: string) => {
     if (!alive.current) return;
@@ -170,7 +162,9 @@ export function useVoiceAnswer(opts: {
     const chunks: Blob[] = [];
     const rec = new MediaRecorder(media, mime ? { mimeType: mime } : undefined);
     recorder.current = rec;
-    rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
     rec.onstop = () => {
       const durationMs = Date.now() - startedAt.current;
       const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });

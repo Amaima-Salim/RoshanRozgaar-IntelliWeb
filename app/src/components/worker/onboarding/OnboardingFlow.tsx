@@ -272,7 +272,12 @@ export function OnboardingFlow({
         </div>
 
         {voiceStep ? (
-          <VoiceBox stepId={voiceStep} fixtures={aiMode === "fixtures"} onDraft={applyDraft} />
+          <VoiceBox
+            key={voiceStep}
+            stepId={voiceStep}
+            fixtures={aiMode === "fixtures"}
+            onDraft={applyDraft}
+          />
         ) : null}
 
         {step === "trade" ? <TradeStep answers={answers} onChange={patch} /> : null}

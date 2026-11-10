@@ -2,6 +2,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { rateLimits } from "@/lib/db/schema";
+import { getConfig } from "@/lib/config";
 import { HttpError } from "./respond";
 
 /**
@@ -29,6 +30,9 @@ export async function enforceLimit(key: string, max: number, windowSeconds: numb
 
 /** Burst and daily caps for `/api/ai/*` per signed-in user. */
 export async function enforceAiLimits(userId: string) {
-  await enforceLimit(`ai-burst:${userId}`, 12, 60);
+  // The local E2E server (RR_E2E=1, refused on any deployment) shares one demo account across
+  // many runs, so counting would make later tests fail for reasons unrelated to the feature.
+  if (getConfig().isE2E) return;
+  await enforceLimit(`ai-burst:${userId}`, 30, 60);
   await enforceLimit(`ai-day:${userId}`, 200, 86_400);
 }

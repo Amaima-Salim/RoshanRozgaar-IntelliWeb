@@ -6,7 +6,8 @@ const OFF_PORT = PORT + 1;
 const BASE_URL = `http://localhost:${PORT}`;
 const OFF_URL = `http://localhost:${OFF_PORT}`;
 const RUN = Date.now();
-const READY = `.e2e-ready-${RUN}`;
+// Marker inside .next (git-ignored, rebuilt each run) so the second server waits for the build.
+const READY = `.next/e2e-ready-${RUN}`;
 
 // Chromium's fake microphone, so the voice flow can be exercised without hardware.
 const fakeMic = {

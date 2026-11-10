@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AiUnavailableError, transcribe } from "@/lib/ai";
+import { getConfig } from "@/lib/config";
 import { HttpError, ok, route } from "@/lib/api/respond";
 import { enforceAiLimits } from "@/lib/api/rate-limit";
 import { requireRole } from "@/lib/auth/guards";
@@ -15,6 +16,8 @@ const fieldsSchema = z.object({
 /** Speech to text for one spoken answer (AI-01): ≤ 2 MB, 0.7–60 s, type checked by magic bytes. */
 export const POST = route("ai.transcribe", async (request) => {
   const user = await requireRole("worker");
+  // AI switched off: say so plainly, before spending any rate-limit budget.
+  if (getConfig().ai.mode === "off") throw new HttpError("AI_UNAVAILABLE", { reason: "off" });
   const declared = Number(request.headers.get("content-length") ?? 0);
   if (declared > MAX_AUDIO_BYTES + 64 * 1024) throw new HttpError("PAYLOAD_TOO_LARGE");
   await enforceAiLimits(user.id);

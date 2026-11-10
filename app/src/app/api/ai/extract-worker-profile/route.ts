@@ -1,6 +1,7 @@
 import { asc } from "drizzle-orm";
 import { AiUnavailableError, extractWorkerProfile } from "@/lib/ai";
 import { extractRequestSchema } from "@/lib/ai/schemas";
+import { getConfig } from "@/lib/config";
 import { HttpError, ok, parseJson, route } from "@/lib/api/respond";
 import { enforceAiLimits } from "@/lib/api/rate-limit";
 import { requireRole } from "@/lib/auth/guards";
@@ -10,6 +11,8 @@ import { areas } from "@/lib/db/schema";
 /** One step's spoken answer → a draft of that step's field(s). Unknown stays empty (AI-02). */
 export const POST = route("ai.extractWorkerProfile", async (request) => {
   const user = await requireRole("worker");
+  // AI switched off: say so plainly, before spending any rate-limit budget.
+  if (getConfig().ai.mode === "off") throw new HttpError("AI_UNAVAILABLE", { reason: "off" });
   const { stepId, transcript } = await parseJson(request, extractRequestSchema);
   await enforceAiLimits(user.id);
   // Allowed areas come from the database, never from the client.
