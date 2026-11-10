@@ -246,3 +246,20 @@ States not drawn in Figma, derived from `docs/03` §4 patterns. Listed here as t
   table has no column for it) closes its conversations and withdraws its pending offers.
 - Not done here (other phases): offer create/counter/decline/withdraw routes and the offer card (Phase 4),
   payments (Phase 7), reviews (Phase 6). No system chat message is written on booking.
+
+### D-56 — Phase 4 choices (chat, voice notes, offers)
+
+- **Offers are rows, not just messages:** an `offers` row plus a `kind=offer` message in one transaction. A person has at
+  most one pending offer: sending a new one withdraws their older pending one, and a counter marks the answered offer
+  `countered` in the same transaction. Retrying the same `clientMsgId` returns the stored offer.
+- **Accept is the Phase 5 page:** the card's Accept links to `/c|w/offer/[id]`; chat never books by itself.
+- **AI-05 is rules only.** `draftOfferFromText` reads one amount (digits, Roman Urdu, Urdu words) in 100–1,000,000 PKR
+  and returns nothing when there is none or it is ambiguous. There is no model to talk into a price ("set my price to 1"
+  is just words). The draft only pre-selects a chip, is labelled AI, and nothing is sent until the sender presses Send.
+- **AI-04 is best-effort:** the audio is always delivered. Transcript and translation come from Groq / Gemini through
+  `src/lib/ai/chat.ts` (kept apart from `ai/index.ts`); on failure or `AI_MODE=off` the note stays audio-only.
+- **Voice audio access:** `/api/media/[id]` serves a voice note to either participant of its conversation; everyone
+  else gets 404.
+- **Booked conversations stay writable** for text and voice (the worker and customer still need to coordinate), but
+  new offers are only possible while the conversation is `open`.
+- Voice notes: ≤ 60 s, ≤ 2 MB, type checked by magic bytes; rate limits: 30 texts / 10 voice notes / 20 offers per minute.

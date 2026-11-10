@@ -7,6 +7,7 @@ import {
   requireParticipant,
 } from "@/lib/chat/conversations";
 import { messagesAfter } from "@/lib/chat/messages";
+import { offersFor } from "@/lib/chat/offers";
 import { formatKarachiDate, formatKarachiTime } from "@/lib/domain/time";
 import { formatPkr } from "@/lib/i18n/format";
 import { getT } from "@/lib/i18n/server";
@@ -45,6 +46,7 @@ export async function ChatPage({ role, id }: { role: "customer" | "worker"; id?:
     notFound();
   }
   const initial = await messagesAfter(id, 0);
+  const initialOffers = await offersFor(id);
   const otherName =
     lang === "ur" && header.other?.nameUr ? header.other.nameUr : (header.other?.name ?? "");
   const start = header.request.startAt;
@@ -70,7 +72,15 @@ export async function ChatPage({ role, id }: { role: "customer" | "worker"; id?:
           viewerId={user.id}
           role={role}
           initial={initial}
-          open={header.status === "open"}
+          initialOffers={initialOffers}
+          open={header.status === "open" || header.status === "booked"}
+          canOffer={header.status === "open"}
+          otherName={otherName}
+          request={{
+            startAt: start.toISOString(),
+            durationMin: header.request.durationMin,
+            ratePkr: header.workerProfile?.rate ?? null,
+          }}
         />
       </section>
       <aside

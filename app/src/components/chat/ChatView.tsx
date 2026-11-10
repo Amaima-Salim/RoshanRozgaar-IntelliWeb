@@ -1,10 +1,14 @@
 "use client";
 
-import { RotateCcw, Send } from "lucide-react";
+import { Handshake, RotateCcw, Send, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import type { ChatMessage } from "@/lib/chat/messages";
+import type { OfferView } from "@/lib/chat/offers";
+import { OfferCard } from "./OfferCard";
+import { OfferComposer, type OfferDraft } from "./OfferComposer";
+import { VoiceRecorder } from "./VoiceRecorder";
 import { CUSTOMER_QUICK, WORKER_QUICK, type QuickKey } from "@/lib/chat/quick-replies";
 import { formatKarachiTime } from "@/lib/domain/time";
 import { useI18n } from "@/lib/i18n/client";
@@ -39,18 +43,41 @@ export function ChatView({
   viewerId,
   role,
   initial,
+  initialOffers,
   open,
+  canOffer,
+  otherName,
+  request,
 }: {
   conversationId: string;
   viewerId: string;
   role: "customer" | "worker";
   initial: ChatMessage[];
+  initialOffers: OfferView[];
   open: boolean;
+  canOffer: boolean;
+  otherName: string;
+  request: { startAt: string; durationMin: number; ratePkr: number | null };
 }) {
   const { t, lang } = useI18n();
   const [messages, setMessages] = useState<Local[]>(initial);
   const payloads = useRef(new Map<string, Record<string, unknown>>());
   const [text, setText] = useState("");
+  const [offers, setOffers] = useState<Map<string, OfferView>>(
+    () => new Map(initialOffers.map((o) => [o.id, o])),
+  );
+  const [composer, setComposer] = useState<{ counterOf?: OfferView; draft?: OfferDraft } | null>(
+    null,
+  );
+  const [draftBusy, setDraftBusy] = useState<string | null>(null);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
+  const putOffers = useCallback((list: OfferView[]) => {
+    setOffers((prev) => {
+      const next = new Map(prev);
+      for (const o of list) next.set(o.id, o);
+      return next;
+    });
+  }, []);
   const [pollError, setPollError] = useState(false);
   const lastSeq = useRef(initial.at(-1)?.seq ?? 0);
   const bottom = useRef<HTMLLIElement>(null);
@@ -80,11 +107,15 @@ export function ChatView({
           `/api/conversations/${conversationId}/messages?after=${lastSeq.current}`,
           { cache: "no-store" },
         );
-        const json = (await res.json()) as { ok: boolean; data?: { messages: ChatMessage[] } };
+        const json = (await res.json()) as {
+          ok: boolean;
+          data?: { messages: ChatMessage[]; offers?: OfferView[] };
+        };
         if (stopped) return;
         if (!res.ok || !json.ok || !json.data) throw new Error("poll");
         setPollError(false);
         merge(json.data.messages);
+        if (json.data.offers) putOffers(json.data.offers);
       } catch {
         if (!stopped) setPollError(true);
       }
@@ -97,7 +128,7 @@ export function ChatView({
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [conversationId, merge]);
+  }, [conversationId, merge, putOffers]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -152,6 +183,32 @@ export function ChatView({
       m.bodyText ?? "",
     );
 
+  const draftFromVoice = async (messageId: string) => {
+    setDraftBusy(messageId);
+    setDraftNote(null);
+    try {
+      const res = await fetch("/api/ai/draft-offer", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        data?: { pricePkr: number | null; aiDrafted: boolean };
+      };
+      if (!res.ok || !json.ok || !json.data) throw new Error("draft");
+      if (json.data.pricePkr == null) setDraftNote(t("offerCard.noAmountHeard"));
+      setComposer({
+        draft: { pricePkr: json.data.pricePkr, aiDrafted: json.data.pricePkr != null },
+      });
+    } catch {
+      setDraftNote(t("offerCard.failed"));
+      setComposer({});
+    } finally {
+      setDraftBusy(null);
+    }
+  };
+
   const quick = role === "customer" ? CUSTOMER_QUICK : WORKER_QUICK;
 
   return (
@@ -170,6 +227,24 @@ export function ChatView({
           const shown =
             m.translatedText && m.translatedLang === lang ? m.translatedText : m.bodyText;
           const original = shown !== m.bodyText ? m.bodyText : null;
+          if (m.kind === "offer") {
+            const offer = m.offerId ? offers.get(m.offerId) : undefined;
+            return (
+              <li key={m.id} className="flex flex-col" data-testid="message" data-mine={mine}>
+                {offer ? (
+                  <OfferCard
+                    offer={offer}
+                    mine={mine}
+                    otherName={otherName}
+                    role={role}
+                    aiDrafted={m.aiGenerated}
+                    onCounter={(o) => setComposer({ counterOf: o })}
+                    onChanged={(o) => putOffers([o])}
+                  />
+                ) : null}
+              </li>
+            );
+          }
           return (
             <li
               key={m.id}
@@ -181,7 +256,51 @@ export function ChatView({
               data-testid="message"
               data-mine={mine}
             >
-              <p dir="auto">{shown}</p>
+              {m.kind === "voice" && m.mediaId ? (
+                <div className="flex flex-col gap-1" data-testid="voice-message">
+                  <audio
+                    controls
+                    preload="none"
+                    src={`/api/media/${m.mediaId}`}
+                    aria-label={t("voiceNote.audioLabel")}
+                    className="max-w-full"
+                  />
+                  {m.transcriptText ? (
+                    <>
+                      <p dir="auto" data-testid="voice-transcript">
+                        <span className="text-xs opacity-80">{t("voiceNote.transcript")}: </span>
+                        {m.transcriptText}
+                      </p>
+                      {m.translatedText ? (
+                        <p dir="auto" data-testid="voice-translation">
+                          <span className="text-xs opacity-80">{t("voiceNote.translated")}: </span>
+                          {m.translatedText}
+                        </p>
+                      ) : null}
+                      <p className="inline-flex items-center gap-1 text-xs opacity-80">
+                        <Sparkles aria-hidden className="size-3.5" />
+                        {t("voiceNote.aiLabel")}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs opacity-80">{t("voiceNote.audioOnly")}</p>
+                  )}
+                  {!mine && canOffer && m.transcriptText ? (
+                    <button
+                      type="button"
+                      onClick={() => void draftFromVoice(m.id)}
+                      disabled={draftBusy === m.id}
+                      className="inline-flex min-h-touch items-center gap-1 self-start font-semibold underline"
+                      data-testid="offer-from-voice"
+                    >
+                      <Handshake aria-hidden className="size-4" />
+                      {t("offerCard.fromVoice")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <p dir="auto">{shown}</p>
+              )}
               {original ? (
                 <p dir="auto" className="text-xs opacity-80">
                   {t("chat.original", { text: original })}
@@ -233,6 +352,23 @@ export function ChatView({
               </li>
             ))}
           </ul>
+          <div className="flex flex-wrap items-start gap-2">
+            <VoiceRecorder conversationId={conversationId} onSent={(msg) => merge([msg])} />
+            {canOffer ? (
+              <Button
+                variant="outline"
+                icon={<Handshake aria-hidden className="size-5" />}
+                label={t("offerCard.newOffer")}
+                onClick={() => setComposer({})}
+                data-testid="offer-new"
+              />
+            ) : null}
+          </div>
+          {draftNote ? (
+            <p role="status" className="text-sm text-text-muted" data-testid="draft-note">
+              {draftNote}
+            </p>
+          ) : null}
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -261,6 +397,23 @@ export function ChatView({
       ) : (
         <p className="text-text-muted">{t("chat.noOpen")}</p>
       )}
+      {composer ? (
+        <OfferComposer
+          conversationId={conversationId}
+          requestStartAt={request.startAt}
+          requestDurationMin={request.durationMin}
+          ratePkr={request.ratePkr}
+          counterOf={composer.counterOf}
+          draft={composer.draft}
+          onClose={() => setComposer(null)}
+          onSent={(o) => {
+            putOffers([o]);
+            if (composer.counterOf) putOffers([{ ...composer.counterOf, status: "countered" }]);
+            setComposer(null);
+            setDraftNote(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

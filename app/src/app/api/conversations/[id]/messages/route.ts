@@ -4,6 +4,7 @@ import { enforceLimit } from "@/lib/api/rate-limit";
 import { requireUser } from "@/lib/auth/guards";
 import { requireParticipant } from "@/lib/chat/conversations";
 import { insertMessage, messagesAfter } from "@/lib/chat/messages";
+import { offersFor } from "@/lib/chat/offers";
 import { QUICK_KEYS, quickReplyText } from "@/lib/chat/quick-replies";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -22,7 +23,8 @@ export const GET = route<Ctx>("messages.list", async (request, ctx) => {
   if (typeof after !== "number" && !after.success)
     throw new HttpError("VALIDATION", { reason: "after" });
   const messages = await messagesAfter(id, typeof after === "number" ? after : after.data);
-  return ok({ messages });
+  // Offers ride along so an accepted / countered / declined card updates without a reload.
+  return ok({ messages, offers: await offersFor(id) });
 });
 
 const sendSchema = z
@@ -46,7 +48,8 @@ export const POST = route<Ctx>("messages.send", async (request, ctx) => {
   const { id } = await ctx.params;
   if (!idSchema.safeParse(id).success) throw new HttpError("NOT_FOUND");
   const p = await requireParticipant(id, user.id);
-  if (p.status !== "open") throw new HttpError("CONFLICT_STATE", { reason: "conversation_closed" });
+  if (!["open", "booked"].includes(p.status))
+    throw new HttpError("CONFLICT_STATE", { reason: "conversation_closed" });
   const body = await parseJson(request, sendSchema);
   await enforceLimit(`chat-send:${user.id}`, 30, 60);
   const { message, duplicate } = await insertMessage({
